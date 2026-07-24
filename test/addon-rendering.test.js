@@ -537,7 +537,7 @@ test("Hagga Basin instances are sorted alphabetically by sietch name", async () 
   assert.deepEqual(names, ["Sietch Abbir", "Sietch Makab", "Sietch Tabr"]);
 });
 
-test("size rows preserve a real zero (e.g. no active Large fields) instead of omitting the row", async () => {
+test("per-instance size rows preserve a real zero (e.g. no active Large fields) instead of omitting the row", async () => {
   const { window } = loadAddon();
   installMockProvider(window, {
     getResources: async () => live({
@@ -551,17 +551,39 @@ test("size rows preserve a real zero (e.g. no active Large fields) instead of om
   runAddon(window);
   await flushAsync();
 
-  const summaryRows = [...window.document.querySelectorAll("#dd-size-body tr")].map((tr) => [...tr.children].map((td) => td.textContent));
-  assert.deepEqual(summaryRows, [["Small", "1"], ["Medium", "1"], ["Large", "0"]], "Large must still appear as a real 0 row, never omitted");
+  const instanceRows = [...window.document.querySelectorAll("#dd-instances .res-instance-card table tbody tr")].map((tr) => [...tr.children].map((td) => td.textContent));
+  assert.deepEqual(instanceRows, [["Small", "1", "—"], ["Medium", "1", "—"], ["Large", "0", "—"]], "Large must still appear as a real 0 active-fields row, never omitted, with a dash (not a fabricated 0) for its unresolved Potential Spice");
 });
 
-test("per-instance size-breakdown table has no per-size spice-amount column at all — there is no real data source for it", async () => {
+test("per-instance size-breakdown table shows a real per-size Potential Spice value when Core resolves one", async () => {
   const { window } = loadAddon();
   installMockProvider(window, {
     getResources: async () => live({
       deepDesert: emptySection(),
       haggaBasin: {
-        summary: { totalActiveFields: 5, totalRemainingSpice: 25000, pvpInstances: 1, pveInstances: 0, bySize: [{ size: "Small", activeFields: 5 }] },
+        summary: { totalActiveFields: 5, totalRemainingSpice: 25000, pvpInstances: 1, pveInstances: 0, bySize: [{ size: "Small", activeFields: 5, remainingSpice: 25000 }] },
+        instances: [haggaBasinInstance({ sizes: [{ size: "Small", activeFields: 5, remainingSpice: 25000 }] })]
+      }
+    })
+  });
+  runAddon(window);
+  await flushAsync();
+
+  const card = window.document.querySelector("#hb-instances .res-instance-card table tbody tr");
+  const cells = [...card.children].map((td) => td.textContent);
+  assert.deepEqual(cells, ["Small", "5", "25,000"], "the per-size table must show the real, Core-resolved Potential Spice value for this size, locale-formatted");
+
+  const headers = [...window.document.querySelectorAll("#hb-instances .res-instance-card table thead th")].map((th) => th.textContent);
+  assert.deepEqual(headers, ["Size", "Active Fields", "Potential Spice"]);
+});
+
+test("per-instance size-breakdown table shows a dash, never a fabricated 0, when Core could not safely resolve a size's Potential Spice", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, {
+    getResources: async () => live({
+      deepDesert: emptySection(),
+      haggaBasin: {
+        summary: { totalActiveFields: 5, totalRemainingSpice: 25000, pvpInstances: 1, pveInstances: 0, bySize: [{ size: "Small", activeFields: 5, remainingSpice: null }] },
         instances: [haggaBasinInstance({ sizes: [{ size: "Small", activeFields: 5, remainingSpice: null }] })]
       }
     })
@@ -571,10 +593,7 @@ test("per-instance size-breakdown table has no per-size spice-amount column at a
 
   const card = window.document.querySelector("#hb-instances .res-instance-card table tbody tr");
   const cells = [...card.children].map((td) => td.textContent);
-  assert.deepEqual(cells, ["Small", "5"], "the per-size table must only have Size and Active Fields columns -- no fabricated or dashed-out amount column, since no real per-size spice figure exists");
-
-  const headers = [...window.document.querySelectorAll("#hb-instances .res-instance-card table thead th")].map((th) => th.textContent);
-  assert.deepEqual(headers, ["Size", "Active Fields"]);
+  assert.deepEqual(cells, ["Small", "5", "—"], "null must render as a dash, never as a fabricated 0 or blank cell, when Core determined the rank-match was unsafe for this size");
 });
 
 test("the instance/sietch-level spice total is labeled 'Potential Spice', not 'Remaining' or 'Available' -- both would overclaim precision this live snapshot doesn't have", async () => {

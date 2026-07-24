@@ -76,7 +76,6 @@ const ddActiveFieldsEl = document.querySelector("#dd-active-fields");
 const ddRemainingSpiceEl = document.querySelector("#dd-remaining-spice");
 const ddPvpInstancesEl = document.querySelector("#dd-pvp-instances");
 const ddPveInstancesEl = document.querySelector("#dd-pve-instances");
-const ddSizeBodyEl = document.querySelector("#dd-size-body");
 const ddEmptyStateEl = document.querySelector("#dd-empty-state");
 const ddInstancesEl = document.querySelector("#dd-instances");
 const ddInstanceCountEl = document.querySelector("#dd-instance-count");
@@ -85,7 +84,6 @@ const hbActiveFieldsEl = document.querySelector("#hb-active-fields");
 const hbRemainingSpiceEl = document.querySelector("#hb-remaining-spice");
 const hbPvpInstancesEl = document.querySelector("#hb-pvp-instances");
 const hbPveInstancesEl = document.querySelector("#hb-pve-instances");
-const hbSizeBodyEl = document.querySelector("#hb-size-body");
 const hbEmptyStateEl = document.querySelector("#hb-empty-state");
 const hbInstancesEl = document.querySelector("#hb-instances");
 const hbInstanceCountEl = document.querySelector("#hb-instance-count");
@@ -635,7 +633,6 @@ const RES_SECTION_METRIC_ELS = [
   ddActiveFieldsEl, ddRemainingSpiceEl, ddPvpInstancesEl, ddPveInstancesEl,
   hbActiveFieldsEl, hbRemainingSpiceEl, hbPvpInstancesEl, hbPveInstancesEl
 ];
-const RES_SECTION_TABLE_ELS = [ddSizeBodyEl, hbSizeBodyEl];
 
 // Locale-formatted numbers per the tab's display requirements; null/undefined
 // render as a dash, never as "0" or "null" -- distinguishing "genuinely zero"
@@ -710,13 +707,6 @@ function makeCombatBadge(state) {
   return span;
 }
 
-function renderSizeTable(bodyEl, bySize) {
-  clearTbody(bodyEl);
-  for (const row of bySize || []) {
-    appendRow(bodyEl, [row.size || "?", formatCount(row.activeFields)]);
-  }
-}
-
 // Per-instance/sietch cards are visually accented by real combat state
 // (PvP red / PvE green border+header, matching the addon-wide badge
 // convention) -- an "accent" treatment, not a full-block background tint,
@@ -784,20 +774,24 @@ function renderInstanceCard(instance) {
   metrics.appendChild(remainingCard);
   card.appendChild(metrics);
 
-  // Size-breakdown table: Field Size + Active Fields only. No per-size
-  // amount/remaining-spice column -- there is no real data source for
-  // that (see duneDb.js's own comment: resourcefield_state has no size
-  // label, spicefield_types has no remaining-spice column, no shared
-  // join key or value-range correlation exists to infer one). The one
-  // real spice total for this instance is "Potential Spice" above,
-  // shown once, not fabricated per row.
+  // Size-breakdown table: Field Size + Active Fields + Potential Spice.
+  // Per-size Potential Spice comes from Core's resolvePerSizePotentialSpice()
+  // (real rank-match of resourcefield_state's distinct value_remaining
+  // groups against the map's known, ordered size list -- see duneDb.js's
+  // own comment for the exact safety condition) -- it is only ever a
+  // real, live-derived number or null, NEVER a guessed/apportioned value.
+  // null renders as "--" via formatCount(), the same honest-unavailable
+  // convention used everywhere else in this addon, for exactly the cases
+  // where Core itself determined the rank-match would be unsafe (e.g. a
+  // size with zero active fields, or harvesting having fragmented one
+  // size's fields into multiple distinct values).
   const tableWrap = document.createElement("div");
   tableWrap.className = "table-wrap";
   const table = document.createElement("table");
   table.setAttribute("aria-label", `Field sizes for ${instance.name || "instance"}`);
   const thead = document.createElement("thead");
   const headRow = document.createElement("tr");
-  ["Size", "Active Fields"].forEach((h) => {
+  ["Size", "Active Fields", "Potential Spice"].forEach((h) => {
     const th = document.createElement("th");
     th.setAttribute("scope", "col");
     th.textContent = h;
@@ -808,7 +802,7 @@ function renderInstanceCard(instance) {
 
   const tbody = document.createElement("tbody");
   for (const s of instance.sizes || []) {
-    appendRow(tbody, [s.size || "?", formatCount(s.activeFields)]);
+    appendRow(tbody, [s.size || "?", formatCount(s.activeFields), formatCount(s.remainingSpice)]);
   }
   table.appendChild(tbody);
   tableWrap.appendChild(table);
@@ -830,7 +824,7 @@ function sortHaggaBasinInstances(instances) {
 }
 
 function renderMapSection(section, els, sortFn) {
-  const { sectionEl, activeFieldsEl, remainingSpiceEl, pvpEl, pveEl, sizeBodyEl, emptyStateEl, instancesEl, instanceCountEl } = els;
+  const { sectionEl, activeFieldsEl, remainingSpiceEl, pvpEl, pveEl, emptyStateEl, instancesEl, instanceCountEl } = els;
   if (sectionEl) sectionEl.hidden = false;
 
   const summary = (section && section.summary) || { totalActiveFields: 0, totalRemainingSpice: 0, pvpInstances: 0, pveInstances: 0, bySize: [] };
@@ -840,7 +834,6 @@ function renderMapSection(section, els, sortFn) {
   setText(remainingSpiceEl, formatCount(summary.totalRemainingSpice));
   setText(pvpEl, formatCount(summary.pvpInstances));
   setText(pveEl, formatCount(summary.pveInstances));
-  renderSizeTable(sizeBodyEl, summary.bySize);
 
   // A real, derived count of the instances actually being rendered below
   // -- never a separately-tracked number that could drift from what's
@@ -873,15 +866,13 @@ function clearResourcesSections() {
   for (const emptyEl of [ddEmptyStateEl, hbEmptyStateEl]) if (emptyEl) emptyEl.hidden = true;
   for (const listEl of [ddInstancesEl, hbInstancesEl]) if (listEl) while (listEl.firstChild) listEl.removeChild(listEl.firstChild);
   for (const countEl of [ddInstanceCountEl, hbInstanceCountEl]) if (countEl) countEl.textContent = "";
-  clearTbody(ddSizeBodyEl);
-  clearTbody(hbSizeBodyEl);
 }
 
 function renderResources(result) {
   if (resLoadingEl) resLoadingEl.hidden = true;
 
   if (!result || result.status === "unavailable") {
-    renderUnavailablePanel(result, { noteEl: resAvailabilityEl, metricEls: RES_SECTION_METRIC_ELS, tableBodyEls: RES_SECTION_TABLE_ELS });
+    renderUnavailablePanel(result, { noteEl: resAvailabilityEl, metricEls: RES_SECTION_METRIC_ELS });
     clearResourcesSections();
     return;
   }
@@ -894,7 +885,6 @@ function renderResources(result) {
     remainingSpiceEl: ddRemainingSpiceEl,
     pvpEl: ddPvpInstancesEl,
     pveEl: ddPveInstancesEl,
-    sizeBodyEl: ddSizeBodyEl,
     emptyStateEl: ddEmptyStateEl,
     instancesEl: ddInstancesEl,
     instanceCountEl: ddInstanceCountEl
@@ -906,7 +896,6 @@ function renderResources(result) {
     remainingSpiceEl: hbRemainingSpiceEl,
     pvpEl: hbPvpInstancesEl,
     pveEl: hbPveInstancesEl,
-    sizeBodyEl: hbSizeBodyEl,
     emptyStateEl: hbEmptyStateEl,
     instancesEl: hbInstancesEl,
     instanceCountEl: hbInstanceCountEl
