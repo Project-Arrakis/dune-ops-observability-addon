@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.6] - 2026-07-24
+
+### Removed
+- **Players tab — KPI Capability panel**: removed entirely. This panel showed cross-tab data-source health (Combat, Economy, Inventory, SOC, Metrics) on the Players tab specifically — none of which is Players data. Each tab already surfaces its own unavailability directly, exactly when and where it's relevant; this panel was a redundant, misplaced second path to the same information, always visible whether or not anything was actually wrong.
+
 ## [0.4.5] - 2026-07-24
 
 ### Changed
