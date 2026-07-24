@@ -787,3 +787,46 @@ test("KPI Capability panel updates on refresh — a source recovering from unava
   await flushAsync();
   assert.equal(text(window, "#cap-economy"), "supported", "must update to the new real status, not remain stuck on the prior refresh's value");
 });
+
+// ── Visual redesign (Tier 2.4): capability status icons ──
+//
+// Previously every status indicator in the addon (capability
+// supported/partial/unavailable, PvP/PvE combat badges) communicated
+// entirely through color-coded text, with zero iconography anywhere.
+// These tests assert the new inline <svg> icons actually render as real
+// DOM elements alongside the existing text -- not just that the text
+// itself is still correct (already covered above), which wouldn't catch
+// a regression that silently dropped the icon while leaving the label
+// intact.
+
+test("capability status pills render a real inline SVG icon alongside the text label, not text-only", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, allSourcesLive());
+  runAddon(window);
+  await flushAsync();
+
+  const el = window.document.querySelector("#cap-resources");
+  const icon = el.querySelector("svg.status-icon");
+  assert.ok(icon, "capability status pill must contain a real <svg> icon element");
+  assert.equal(text(window, "#cap-resources"), "supported", "icon must not corrupt the existing text label");
+});
+
+test("combat badges render a real inline SVG icon alongside the PVP/PVE text label", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, {
+    getResources: async () => live({
+      deepDesert: {
+        summary: { totalActiveFields: 3, totalRemainingSpice: 15000, pvpInstances: 1, pveInstances: 0, bySize: [] },
+        instances: [deepDesertInstance({ combatState: "PVP" })]
+      },
+      haggaBasin: emptySection()
+    })
+  });
+  runAddon(window);
+  await flushAsync();
+
+  const badge = window.document.querySelector("#dd-instances .res-combat-badge");
+  const icon = badge.querySelector("svg.status-icon");
+  assert.ok(icon, "combat badge must contain a real <svg> icon element");
+  assert.equal(badge.textContent, "PVP");
+});
