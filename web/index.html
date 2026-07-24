@@ -210,59 +210,6 @@
     <section class="card">
       <div class="section-heading">
         <div>
-          <p class="eyebrow">What can I trust right now?</p>
-          <h2>Data Source Status</h2>
-        </div>
-        <p class="provider-label">Computed every refresh</p>
-      </div>
-      <p class="section-copy">Which of this addon's reporting categories are actually live right now, computed from each data source's real status on the most recent refresh — never a static claim. A category backed by more than one source (e.g. Population &amp; Activity) shows "partial" if only some of its sources are live.</p>
-      <div class="capability-grid" aria-label="KPI capability categories">
-        <article class="capability-card">
-          <h3>Population & Activity</h3>
-          <span id="cap-population" class="capability-status" data-capability-sources="opsHealth,activity">—</span>
-          <p>Player totals, online status, active windows, guild/faction/map distribution via ops.health.* and ops.activity.summary.</p>
-        </article>
-        <article class="capability-card">
-          <h3>Farm Health</h3>
-          <span id="cap-farm-health" class="capability-status" data-capability-sources="opsHealth">—</span>
-          <p>Farm totals, ready count, and alive count are available from ops.health.farms.</p>
-        </article>
-        <article class="capability-card">
-          <h3>Combat & Deaths</h3>
-          <span id="cap-combat" class="capability-status" data-capability-sources="combat">—</span>
-          <p>PvP/PvE death breakdowns, cause, map, and NPC tracking via ops.combat.deaths.</p>
-        </article>
-        <article class="capability-card">
-          <h3>Resources</h3>
-          <span id="cap-resources" class="capability-status" data-capability-sources="resources">—</span>
-          <p>Resource field inventory, value remaining, type and map distribution via ops.resources.summary.</p>
-        </article>
-        <article class="capability-card">
-          <h3>Economy & Trade</h3>
-          <span id="cap-economy" class="capability-status" data-capability-sources="economy">—</span>
-          <p>Currency supply, exchange orders, fulfilled trades, and tax fees via ops.economy.summary.</p>
-        </article>
-        <article class="capability-card">
-          <h3>Inventory & Crafting</h3>
-          <span id="cap-inventory" class="capability-status" data-capability-sources="inventory">—</span>
-          <p>Item counts by template, inventory usage, and crafting totals via ops.inventory.summary.</p>
-        </article>
-        <article class="capability-card">
-          <h3>SOC</h3>
-          <span id="cap-soc" class="capability-status" data-capability-sources="soc">—</span>
-          <p>Bridge-request health and error-rate summary via ops.soc.summary.</p>
-        </article>
-        <article class="capability-card">
-          <h3>Metrics (Prometheus)</h3>
-          <span id="cap-prometheus" class="capability-status" data-capability-sources="prometheus">—</span>
-          <p>Optional Prometheus/cAdvisor/node-exporter stack health via ops.health.prometheus. Requires the operator to run `dune metrics start` — "unavailable" here commonly means the stack isn't running, not a defect.</p>
-        </article>
-      </div>
-    </section>
-
-    <section class="card">
-      <div class="section-heading">
-        <div>
           <p class="eyebrow">Population at a glance</p>
           <h2>Engagement Snapshot</h2>
         </div>
