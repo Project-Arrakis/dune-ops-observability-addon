@@ -245,7 +245,6 @@ button:focus-visible {
 
 .summary-grid,
 .ops-health-grid,
-.capability-grid,
 .kpi-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -253,17 +252,13 @@ button:focus-visible {
 }
 
 /* ── Card differentiation ──
-   .metric-card, .capability-card, and .kpi-card were previously
-   visually identical boxes (same border/radius/padding/background),
-   distinguishable only by the text content inside them -- a reporting
-   metric, a capability status, and a computed KPI all looked like the
-   same gray box. Each now has a shared elevated-surface base plus its
-   own accent treatment: metric cards get a bottom accent bar (they are
-   this addon's primary, most-referenced numbers), capability cards get
-   a left accent bar (they are a status/category list), KPI cards keep
-   a plain elevated surface (they are secondary/derived figures). */
+   .metric-card and .kpi-card were previously visually identical boxes
+   (same border/radius/padding/background), distinguishable only by the
+   text content inside them. Each now has a shared elevated-surface base
+   plus its own accent treatment: metric cards get a bottom accent bar
+   (they are this addon's primary, most-referenced numbers); KPI cards
+   keep a plain elevated surface (they are secondary/derived figures). */
 .metric-card,
-.capability-card,
 .kpi-card {
   position: relative;
   border: 1px solid var(--border-default);
@@ -275,7 +270,6 @@ button:focus-visible {
 }
 
 .metric-card:hover,
-.capability-card:hover,
 .kpi-card:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
@@ -292,11 +286,6 @@ button:focus-visible {
   border-radius: 0 0 var(--radius-md) var(--radius-md);
   background: var(--faction-color);
   opacity: 0.7;
-}
-
-.capability-card {
-  border-left: 3px solid var(--border-strong);
-  padding-left: 14px;
 }
 
 .metric-card strong,
@@ -320,55 +309,11 @@ button:focus-visible {
   font-size: var(--font-size-base);
 }
 
-.capability-card h3 {
-  margin-bottom: 10px;
-  font-size: var(--font-size-base);
-  text-transform: none;
-  letter-spacing: normal;
-  font-family: inherit;
-}
-
-/* Status pills previously changed text color only (capability-supported/
-   partial/unavailable), keeping a static neutral-gray border and no
-   background regardless of state -- a materially weaker treatment than
-   this file's own .res-combat-badge component (tinted background +
-   matching border + text, all one color). Every status pill in the
-   addon now follows that same, already-proven pattern. */
-.capability-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  border: 1px solid var(--border-strong);
-  border-radius: 999px;
-  margin-bottom: 10px;
-  padding: 4px 10px;
-  font-size: var(--font-size-xs);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
-}
-
+/* Used by the Spice Melange PvP/PvE combat-badge icons
+   (makeCombatIcon() in web/addon.js) -- not by the now-removed KPI
+   Capability panel, which previously also used this class. */
 .status-icon {
   flex-shrink: 0;
-}
-
-.capability-supported {
-  color: #86efac;
-  border-color: #86efac;
-  background: rgba(134, 239, 172, 0.12);
-}
-
-.capability-partial {
-  color: #fde68a;
-  border-color: #fde68a;
-  background: rgba(253, 230, 138, 0.12);
-}
-
-.capability-unavailable {
-  color: #fca5a5;
-  border-color: #fca5a5;
-  background: rgba(252, 165, 165, 0.12);
 }
 
 .table-wrap {
@@ -454,9 +399,7 @@ tbody tr:hover {
 }
 
 /* Shown by renderUnavailablePanel() when a panel's data source could not be
-   read (not implemented in Core, a bridge error, or a failed request).
-   Reuses the same red/pink tone as .capability-unavailable so "this data
-   is not real" reads consistently across the whole addon. */
+   read (not implemented in Core, a bridge error, or a failed request). */
 .availability-note {
   border: 1px dashed #fca5a5;
   border-radius: var(--radius-md);
@@ -501,7 +444,6 @@ pre {
 @media (max-width: 900px) {
   .summary-grid,
   .ops-health-grid,
-  .capability-grid,
   .kpi-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -519,7 +461,6 @@ pre {
 
   .summary-grid,
   .ops-health-grid,
-  .capability-grid,
   .kpi-grid {
     grid-template-columns: 1fr;
   }

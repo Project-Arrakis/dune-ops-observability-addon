@@ -1,40 +1,39 @@
 # Tab Architecture — Players
 
-**Status (2026-07-24): §1.2's KPI Capability panel defect is resolved.** See the update note at the top of §1.2 below for what changed.
+**Status (2026-07-24): the "KPI Capability" panel described in this doc's history has been removed entirely.** See §1.2 for its full lifecycle (static → dynamic → removed) and why.
 
 **Data-tab attribute**: `players`
-**HTML**: `web/index.html:180-290`
-**Render entry point**: `refreshOpsHealth()` (`web/addon.js:448`, triggered by the "Refresh OPS health" button, `index.html:31`) and `refreshAll()` (line 880, on every general refresh) both call `renderOpsAggregate()` → `renderKpis()`
+**HTML**: `web/index.html` (`data-tab="players"` section)
+**Render entry point**: `refreshOpsHealth()` (triggered by the "Refresh OPS health" button) and `refreshAll()` (on every general refresh) both call `renderOpsAggregate()` → `renderKpis()`
 
 ---
 
 ## 1. Current implementation (verified)
 
-Three panels: "OPS Health Aggregate" (a table), "KPI Capability" (a static grid), "Read-only KPI Panels" (computed cards).
+Two panels remain: "OPS Health Aggregate" (a table) and "Read-only KPI Panels" (computed cards). A third panel, "KPI Capability," existed between 2026-07-24's dynamic-status fix and its removal later the same day — see §1.2.
 
-### 1.1 "OPS Health Aggregate" table (index.html:182-207)
+### 1.1 "OPS Health Aggregate" table
 
-One row per refresh, showing the same totals as the NOC Overview's summary cards (Scope/Players/Online/Offline/Farm Sites/Ready-Alive/Last Read), built by `renderOpsAggregate()` (`addon.js:401-445`). The `#empty-state` div correctly distinguishes three states (fixed in the F-1 refactor):
-- **Unavailable** (`!snapshot.available`): `emptyStateEl.hidden = false`, text via `unavailableMessage()` — "Not available — [reason]".
-- **Available, zero rows**: `emptyStateEl.hidden = snapshot.hasRows` (i.e., shown), text: "OPS health bridge returned zero player rows and zero farm rows. This is live aggregate data, not placeholder content."
+One row per refresh, showing the same totals as the NOC Overview's summary cards (Players/Online/Offline/Farm Sites), plus Ready/Alive and Last Read, built by `renderOpsAggregate()`. The `#empty-state` div correctly distinguishes three states:
+- **Unavailable** (`!snapshot.available`): shown, text via `unavailableMessage()` — "Not available — [reason]".
+- **Available, zero rows**: shown, text: "OPS health bridge returned zero player rows and zero farm rows. This is live aggregate data, not placeholder content."
 - **Available, has rows**: hidden entirely.
 
-No defects found in this panel.
+No defects found in this panel. Known, deliberately-out-of-scope overlap: this table duplicates the same 4 numbers (Players/Online/Offline/Farm Sites) already shown as metric-cards on the Overview tab — a data-architecture question, not a visual one, tracked separately, not fixed as part of any content/visual pass so far.
 
-### 1.2 "KPI Capability" panel (index.html) — **resolved 2026-07-24 (Tier 2.1)**
+### 1.2 "KPI Capability" panel — removed entirely (2026-07-24)
 
-**Original defect** (kept below for history): seven `<article class="capability-card">` rows, entirely static HTML, each hardcoded `<span class="capability-status capability-supported">supported</span>` — confirmed via direct search that zero occurrences of `capability-grid`/`capability-card`/`capability-status` existed anywhere in `web/addon.js`, meaning the panel never reflected real bridge state. One claim (Location & Territory) was permanently false, since Location is closed out-of-scope by owner decision (`docs/tabs/LOCATION.md`) and will never be implemented.
+**Full lifecycle, for history:**
 
-**Fix implemented**:
-- Removed the "Location & Territory" row entirely (recommendation #1 below) — Location was a feature this addon will never have, not a capability worth reporting as dynamically supported/unavailable.
-- Made the panel dynamic (recommendation #2 below): each `<span class="capability-status">` now carries a `data-capability-sources="..."` attribute (a comma-separated list of the real `SOURCE_NAMES` entries backing it, e.g. `data-capability-sources="opsHealth,activity"` for Population & Activity) read directly from the DOM by a new `renderCapabilities()` function (`web/addon.js`), called at the end of every `refreshAll()` cycle alongside every other `renderXxx()`. A capability's status is computed fresh every refresh from the real `SourceResult.status` of each source it depends on — `"supported"` only if every listed source is `live`/`preview` this refresh, `"unavailable"` only if every listed source is `unavailable`, `"partial"` (previously-dead CSS, now wired up) if some but not all are.
-- Added SOC and Metrics/Prometheus rows (recommendation #3 below) — both are real data-source domains that previously had no capability row at all.
-- 7 new jsdom behavioral tests added to `test/addon-rendering.test.js` covering: a genuinely-down source shows `unavailable` (never the old static `supported`); a genuinely-live source shows `supported`; the multi-source Population & Activity capability correctly shows `partial` when only some of its sources are live, and correctly requires *all* sources live/down for `supported`/`unavailable`; the Location row no longer exists at all; SOC/Prometheus rows exist and reflect their own independent status; and a source recovering from unavailable to live on a subsequent refresh is reflected, not stuck on a stale value.
-- Deliberately broke the multi-source "partial" branch during test-writing to confirm the multi-source test actually catches a regression (it did, with a clear diff), then restored the correct logic and reconfirmed all tests pass — following the same verification discipline used for the Spice Melange sort-order tests.
+1. **Original defect**: seven `<article class="capability-card">` rows, entirely static HTML, each hardcoded `<span class="capability-status capability-supported">supported</span>` — confirmed via direct search that zero occurrences of `capability-grid`/`capability-card`/`capability-status` existed anywhere in `web/addon.js`, meaning the panel never reflected real bridge state. One claim (Location & Territory) was permanently false, since Location is closed out-of-scope by owner decision (`docs/tabs/LOCATION.md`) and will never be implemented.
+2. **Fixed to be dynamic** (Tier 2.1, PR #71): removed the Location row, wired each status span to a real `data-capability-sources` attribute read by a new `renderCapabilities()` function, added SOC/Metrics rows. Computed a real `supported`/`partial`/`unavailable` status every refresh from actual per-source `SourceResult.status`. Shipped with icons in the later visual-redesign pass (PR #73).
+3. **Removed entirely** (Tier 2.6 follow-up, same day): on further review, the panel was judged to add little real value even once dynamic and honest — it was meta/diagnostic information (which data *sources* are live) sitting on the Players tab specifically, showing status for Combat, Economy, Inventory, SOC, and Metrics — none of which are Players data at all. A user opening the Players tab to check population numbers doesn't need a cross-tab health dashboard bolted on top; if a specific tab's data is actually down, that tab's own `.availability-note` already surfaces it exactly when and where it's relevant. Maintainer decision: delete the panel (HTML section, `renderCapabilities()`/`capabilityStatusFor()`/`makeStatusIcon()`, the 8 covering tests, and the now-unused `.capability-*` CSS) rather than keep maintaining a real but low-value feature.
 
-### 1.3 "Read-only KPI Panels" (index.html:257-288)
+**What remains reusable from this panel's work**: `SVG_NS` and the general "real inline `<svg>` icon, not a data-URI/icon-font" pattern are still used by the Spice Melange PvP/PvE combat badges (`makeCombatIcon()`), which are unrelated to this panel and were not removed.
 
-Active Rate / Average Level / Top Faction / Top Guild — computed by `renderKpis()` (`addon.js:382-399`) directly from the same OPS-health snapshot as §1.1. Handles missing sub-fields correctly (`kpis.averageLevel === null ? "—" : ...`), though the "not present" wording (e.g., *"Average level is not present in this aggregate payload"*) is worth revisiting once the KPI Capability panel is fixed, for consistent terminology (`docs/DESIGN-REVIEW-2026-07-23.md` §4's "no shared status convention" note applies directly here too — "not present in payload" and "unavailable" describe the same underlying situation with different words in different panels).
+### 1.3 "Read-only KPI Panels"
+
+Active Rate / Average Level / Top Faction / Top Guild — computed by `renderKpis()` directly from the same OPS-health snapshot as §1.1. Handles missing sub-fields correctly (`kpis.averageLevel === null ? "—" : ...`).
 
 ---
 
@@ -44,11 +43,6 @@ Identical upstream data source as NOC Overview (`ops.health.summary.v2`/`.player
 
 ---
 
-## 3. Recommended design changes — all implemented 2026-07-24 (Tier 2.1)
+## 3. Recommended design changes
 
-1. ~~Remove the "Location & Territory" row entirely.~~ **Done.**
-2. ~~Make the remaining KPI Capability panel dynamic, driven by the real `SourceResult.status` of each underlying data source.~~ **Done** — see §1.2 above. Uses a `capability-partial` third state (not just supported/unavailable) for capabilities backed by more than one source, which the original recommendation didn't anticipate but the pre-existing dead CSS already supported.
-3. ~~Consider adding rows for SOC and Prometheus/Metrics.~~ **Done** — added, since both are real, live-or-live-but-conditional data-source domains.
-4. This panel is now a genuinely useful single-glance "what can I trust right now" summary, recomputed every refresh.
-
-No further action needed on this panel unless a new capability/source is added to the addon in the future — in which case, add a new `<span data-capability-sources="...">` row rather than a static one, to keep this panel from regressing back to the original defect.
+None outstanding for this tab specifically. If a future need arises to show cross-tab data-source health at a glance again, do not re-add it to the Players tab — the §1.2 lifecycle is the reasoning for why it doesn't belong there. Diagnostics (the `diag` tab) would be a more appropriate home if this is ever revisited, since that tab already exists for meta/debug information.

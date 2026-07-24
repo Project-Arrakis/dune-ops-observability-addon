@@ -99,7 +99,7 @@ export async function addonOpsPrometheusHealth(promBaseUrl = "http://127.0.0.1:9
 ## 5. Other observations
 
 - `sampleSoc`'s fixture re-embeds `health`, `activity`, `economy`, `combat`, `resources`, `inventory`, `location` sub-objects (data-providers.js:250-260) that `renderSoc()` never reads (confirmed: `renderSoc` only reads `platformHealth`/`bridgeRequests`/`bridgeErrors`/`bridgeSuccessRate`). This is dead fixture data in preview mode — harmless, but worth pruning for clarity whenever this file is next touched.
-- Neither `ops.soc.summary` nor `ops.health.prometheus` currently appears as a row in the Players tab's "KPI Capability" panel (see `docs/tabs/PLAYERS.md` §1.2's finding #2) — worth deciding whether they should, once that panel is made dynamic.
+- (Historical, resolved) Neither `ops.soc.summary` nor `ops.health.prometheus` used to appear as a row in the Players tab's "KPI Capability" panel — both were added once that panel was made dynamic (Tier 2.1). The panel itself has since been removed entirely (see `docs/tabs/PLAYERS.md` §1.2) as low-value cross-tab meta information that didn't belong on the Players tab; this observation no longer applies to anything currently in the addon.
 
 ---
 
