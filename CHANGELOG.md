@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.4] - 2026-07-24
+
+### Changed
+- **Visual redesign — Players and Spice Melange tabs**: addressed the addon's flat, unpolished visual system with a real design-token system (elevation/shadow tokens, a proper type scale), the branded "Dune Rise" display font applied to every heading (previously used in exactly one place), differentiated card treatments with real hover states (metric/capability/kpi cards were previously visually identical), the addon's first icons anywhere (checkmark/exclamation/x on capability-status pills, crossed-swords/shield on PvP/PvE combat badges), real tinted backgrounds on status pills, and zebra-striped/hoverable tables.
+- **Players tab**: replaced internal ticket-ID eyebrow labels ("A3"/"A4"/"A5") with real, human-readable labels; removed a stale version reference in the KPI Panels copy; gave the OPS Health Aggregate row more visual weight.
+- **Spice Melange tab**: added a real, derived instance-count badge next to each map section's heading ("2 instances"/"1 instance"); instance/sietch cards now have real elevation, hover lift, and a colored glow-ring on hover matching their real PvP/PvE state; removed 3 redundant inline color styles already covered by an existing CSS rule.
+
 ## [0.4.3] - 2026-07-24
 
 ### Fixed
