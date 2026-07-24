@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.5] - 2026-07-24
+
+### Changed
+- **Rewrote every tab's heading text** (eyebrow + section title + provider-label) addon-wide — most previously communicated little beyond internal-engineering jargon (e.g. "KPI Capability", "Read-only support map") without reading the paragraph below them. Removed 11 stale version-tag eyebrows (leftover feature-milestone numbers like "v0.7.0"/"v1.0.0" that didn't correspond to this addon's real version). Provider-labels that showed a raw bridge action name now lead with plain-English framing ("Live · ops.economy.summary") while keeping the exact action name visible.
+- **Location tab**: copy now states plainly that per-player location tracking is permanently out of scope by design, rather than describing a feature that will never exist.
+- **Combat tab**: copy now discloses that PvP/PvE death classification is not yet available and all deaths currently report as PvE — a known limitation, not a silent gap.
+- Added a missing explanatory paragraph to the Players tab's "Player & Farm Totals" section (previously the only section in the addon with no such explanation at all).
+
+### Fixed
+- **Inventory tab — Total Crafted false-zero**: this stat rendered a fabricated `0` for a field that has no real data source anywhere in Core's schema (Core always returns `totalCrafted: null`, by design, never estimated). Now correctly shows as unavailable ("—") instead of a misleading zero whenever the rest of the inventory source is genuinely live.
+
 ## [0.4.4] - 2026-07-24
 
 ### Changed
