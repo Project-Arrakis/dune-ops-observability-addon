@@ -649,18 +649,37 @@ pre {
 
 /* ── Spice Melange: Deep Desert / Hagga Basin sections ── */
 .res-map-section {
-  margin-top: 20px;
+  margin-top: 24px;
 }
 .res-map-section:first-of-type {
   margin-top: 12px;
 }
 .res-map-heading {
-  border-bottom: 1px solid #374151;
-  padding-bottom: 8px;
-  margin-bottom: 12px;
+  border-bottom: 1px solid var(--border-default);
+  padding-bottom: 10px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
 }
 .res-map-heading h3 {
   margin-bottom: 0;
+  font-size: var(--font-size-lg);
+}
+
+/* A small, muted instance-count badge next to each map's heading --
+   gives an at-a-glance sense of scale (how many instances/sietches
+   this section holds) without needing to count summary-grid cards or
+   scroll the instance list. Populated by renderMapSection() in
+   addon.js; text-only content, purely a real, derived count, never a
+   second independently-computed number. */
+.res-map-instance-count {
+  color: var(--text-tertiary);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 /* Real-data loading state, distinct from the unavailable/empty states --
@@ -678,10 +697,17 @@ pre {
 }
 
 .res-instance-card {
-  border: 1px solid #374151;
-  border-radius: 14px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
   padding: 14px 16px;
-  background: #111827;
+  background: linear-gradient(180deg, var(--surface-3) 0%, var(--surface-2) 100%);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--transition-base), box-shadow var(--transition-base), border-color var(--transition-base);
+}
+
+.res-instance-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 /* Accent-only combat-state coloring per instance/sietch card: the border
@@ -692,14 +718,22 @@ pre {
    across the badge and its parent card. */
 .res-instance-card--pvp {
   border-color: #fca5a5;
-  background: linear-gradient(rgba(248, 113, 113, 0.06), rgba(248, 113, 113, 0.06)), #111827;
+  background: linear-gradient(rgba(248, 113, 113, 0.08), rgba(248, 113, 113, 0.03)), var(--surface-2);
+}
+.res-instance-card--pvp:hover {
+  border-color: #fca5a5;
+  box-shadow: var(--shadow-md), 0 0 0 1px rgba(248, 113, 113, 0.25);
 }
 .res-instance-card--pvp .res-instance-name {
   color: #fca5a5;
 }
 .res-instance-card--pve {
   border-color: #86efac;
-  background: linear-gradient(rgba(134, 239, 172, 0.06), rgba(134, 239, 172, 0.06)), #111827;
+  background: linear-gradient(rgba(134, 239, 172, 0.08), rgba(134, 239, 172, 0.03)), var(--surface-2);
+}
+.res-instance-card--pve:hover {
+  border-color: #86efac;
+  box-shadow: var(--shadow-md), 0 0 0 1px rgba(134, 239, 172, 0.25);
 }
 .res-instance-card--pve .res-instance-name {
   color: #86efac;
@@ -707,14 +741,14 @@ pre {
 .res-instance-card--conflict,
 .res-instance-card--mixed {
   border-color: #fde68a;
-  background: linear-gradient(rgba(253, 230, 138, 0.06), rgba(253, 230, 138, 0.06)), #111827;
+  background: linear-gradient(rgba(253, 230, 138, 0.08), rgba(253, 230, 138, 0.03)), var(--surface-2);
 }
 .res-instance-card--conflict .res-instance-name,
 .res-instance-card--mixed .res-instance-name {
   color: #fde68a;
 }
 .res-instance-card--unknown {
-  border-color: #4b5563;
+  border-color: var(--border-strong);
 }
 
 .res-instance-header {
@@ -727,12 +761,14 @@ pre {
 
 .res-instance-name {
   font-weight: 700;
-  font-size: 1rem;
+  font-size: var(--font-size-md);
+  font-family: 'Dune Rise', 'Inter', ui-sans-serif, sans-serif;
+  letter-spacing: 0.02em;
 }
 
 .res-instance-status {
-  color: #9ca3af;
-  font-size: 0.78rem;
+  color: var(--text-tertiary);
+  font-size: var(--font-size-xs);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }

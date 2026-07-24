@@ -830,3 +830,46 @@ test("combat badges render a real inline SVG icon alongside the PVP/PVE text lab
   assert.ok(icon, "combat badge must contain a real <svg> icon element");
   assert.equal(badge.textContent, "PVP");
 });
+
+// ── Spice Melange layout pass: per-section instance-count badge ──
+
+test("each map section shows a real, derived instance count next to its heading, singular vs. plural worded correctly", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, {
+    getResources: async () => live({
+      deepDesert: {
+        summary: { totalActiveFields: 6, totalRemainingSpice: 30000, pvpInstances: 1, pveInstances: 1, bySize: [] },
+        instances: [
+          deepDesertInstance({ dimensionIndex: 0, name: "DeepDesert 0" }),
+          deepDesertInstance({ dimensionIndex: 1, name: "DeepDesert 1" })
+        ]
+      },
+      haggaBasin: {
+        summary: { totalActiveFields: 5, totalRemainingSpice: 25000, pvpInstances: 1, pveInstances: 0, bySize: [{ size: "Small", activeFields: 5 }] },
+        instances: [haggaBasinInstance()]
+      }
+    })
+  });
+  runAddon(window);
+  await flushAsync();
+
+  assert.equal(text(window, "#dd-instance-count"), "2 instances");
+  assert.equal(text(window, "#hb-instance-count"), "1 instance");
+});
+
+test("the instance-count badge clears to empty when a map section has zero instances or the source is unavailable", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, {
+    getResources: async () => live({ deepDesert: emptySection(), haggaBasin: emptySection() })
+  });
+  runAddon(window);
+  await flushAsync();
+  assert.equal(text(window, "#dd-instance-count"), "0 instances");
+
+  installMockProvider(window, {
+    getResources: async () => unavailable("bridge_error", "ops.resources.summary")
+  });
+  window.document.querySelector("#refresh-players").click();
+  await flushAsync();
+  assert.equal(text(window, "#dd-instance-count"), "", "must clear the stale count, not leave a prior refresh's number visible when the source becomes unavailable");
+});

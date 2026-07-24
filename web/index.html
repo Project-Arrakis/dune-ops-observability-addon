@@ -426,12 +426,12 @@
     <section class="card">
       <div class="section-heading spice">
         <div>
-          <p class="eyebrow" style="color:#c4b5fd">v0.6.0</p>
-          <h2 style="color:#c4b5fd">Spice Melange</h2>
+          <p class="eyebrow">v0.6.0</p>
+          <h2>Spice Melange</h2>
         </div>
         <p class="provider-label">ops.resources.summary</p>
       </div>
-      <p class="section-copy" style="color:#c4b5fd">Real, per-instance spice-field inventory for Deep Desert and Hagga Basin. Each instance/sietch is bordered and labeled by its live-configured combat state (red = PvP, green = PvE). Active field counts and potential spice totals are always real, live snapshots; a size tier with zero active fields still shows as a real 0, never omitted.</p>
+      <p class="section-copy">Real, per-instance spice-field inventory for Deep Desert and Hagga Basin. Each instance/sietch is bordered and labeled by its live-configured combat state (red = PvP, green = PvE). Active field counts and potential spice totals are always real, live snapshots; a size tier with zero active fields still shows as a real 0, never omitted.</p>
       <div id="res-loading-note" class="availability-note res-loading-note">Loading spice-field data…</div>
       <div id="res-availability-note" class="availability-note" hidden></div>
 
@@ -439,6 +439,7 @@
       <div id="res-deep-desert-section" class="res-map-section" hidden>
         <div class="section-heading res-map-heading">
           <h3>Deep Desert</h3>
+          <span id="dd-instance-count" class="res-map-instance-count"></span>
         </div>
         <div class="summary-grid" aria-label="Deep Desert summary">
           <article class="metric-card">
@@ -477,6 +478,7 @@
       <div id="res-hagga-basin-section" class="res-map-section" hidden>
         <div class="section-heading res-map-heading">
           <h3>Hagga Basin</h3>
+          <span id="hb-instance-count" class="res-map-instance-count"></span>
         </div>
         <div class="summary-grid" aria-label="Hagga Basin summary">
           <article class="metric-card">

@@ -86,6 +86,7 @@ const ddPveInstancesEl = document.querySelector("#dd-pve-instances");
 const ddSizeBodyEl = document.querySelector("#dd-size-body");
 const ddEmptyStateEl = document.querySelector("#dd-empty-state");
 const ddInstancesEl = document.querySelector("#dd-instances");
+const ddInstanceCountEl = document.querySelector("#dd-instance-count");
 const hbSectionEl = document.querySelector("#res-hagga-basin-section");
 const hbActiveFieldsEl = document.querySelector("#hb-active-fields");
 const hbRemainingSpiceEl = document.querySelector("#hb-remaining-spice");
@@ -94,6 +95,7 @@ const hbPveInstancesEl = document.querySelector("#hb-pve-instances");
 const hbSizeBodyEl = document.querySelector("#hb-size-body");
 const hbEmptyStateEl = document.querySelector("#hb-empty-state");
 const hbInstancesEl = document.querySelector("#hb-instances");
+const hbInstanceCountEl = document.querySelector("#hb-instance-count");
 
 const ecoHoldersEl = document.querySelector("#eco-holders");
 const ecoSupplyEl = document.querySelector("#eco-supply");
@@ -916,7 +918,7 @@ function sortHaggaBasinInstances(instances) {
 }
 
 function renderMapSection(section, els, sortFn) {
-  const { sectionEl, activeFieldsEl, remainingSpiceEl, pvpEl, pveEl, sizeBodyEl, emptyStateEl, instancesEl } = els;
+  const { sectionEl, activeFieldsEl, remainingSpiceEl, pvpEl, pveEl, sizeBodyEl, emptyStateEl, instancesEl, instanceCountEl } = els;
   if (sectionEl) sectionEl.hidden = false;
 
   const summary = (section && section.summary) || { totalActiveFields: 0, totalRemainingSpice: 0, pvpInstances: 0, pveInstances: 0, bySize: [] };
@@ -927,6 +929,15 @@ function renderMapSection(section, els, sortFn) {
   setText(pvpEl, formatCount(summary.pvpInstances));
   setText(pveEl, formatCount(summary.pveInstances));
   renderSizeTable(sizeBodyEl, summary.bySize);
+
+  // A real, derived count of the instances actually being rendered below
+  // -- never a separately-tracked number that could drift from what's
+  // really shown (e.g. instances.length, not summary.pvpInstances +
+  // summary.pveInstances, which could disagree if a combat state ever
+  // resolves to CONFLICT/MIXED/UNKNOWN).
+  if (instanceCountEl) {
+    instanceCountEl.textContent = instances.length === 1 ? "1 instance" : `${instances.length} instances`;
+  }
 
   if (instancesEl) while (instancesEl.firstChild) instancesEl.removeChild(instancesEl.firstChild);
 
@@ -949,6 +960,7 @@ function clearResourcesSections() {
   for (const sectionEl of [ddSectionEl, hbSectionEl]) if (sectionEl) sectionEl.hidden = true;
   for (const emptyEl of [ddEmptyStateEl, hbEmptyStateEl]) if (emptyEl) emptyEl.hidden = true;
   for (const listEl of [ddInstancesEl, hbInstancesEl]) if (listEl) while (listEl.firstChild) listEl.removeChild(listEl.firstChild);
+  for (const countEl of [ddInstanceCountEl, hbInstanceCountEl]) if (countEl) countEl.textContent = "";
   clearTbody(ddSizeBodyEl);
   clearTbody(hbSizeBodyEl);
 }
@@ -972,7 +984,8 @@ function renderResources(result) {
     pveEl: ddPveInstancesEl,
     sizeBodyEl: ddSizeBodyEl,
     emptyStateEl: ddEmptyStateEl,
-    instancesEl: ddInstancesEl
+    instancesEl: ddInstancesEl,
+    instanceCountEl: ddInstanceCountEl
   }, sortDeepDesertInstances);
 
   renderMapSection(d.haggaBasin, {
@@ -983,7 +996,8 @@ function renderResources(result) {
     pveEl: hbPveInstancesEl,
     sizeBodyEl: hbSizeBodyEl,
     emptyStateEl: hbEmptyStateEl,
-    instancesEl: hbInstancesEl
+    instancesEl: hbInstancesEl,
+    instanceCountEl: hbInstanceCountEl
   }, sortHaggaBasinInstances);
 }
 
