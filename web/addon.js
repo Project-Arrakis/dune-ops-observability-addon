@@ -1053,7 +1053,14 @@ function renderInventory(result) {
   const d = result.data || {};
   setText(invItemsEl, d.totalItems ?? 0);
   setText(invInvsEl, d.totalInventories ?? 0);
-  setText(invCraftedEl, d.totalCrafted ?? 0);
+  // totalCrafted has no real data source anywhere in Core's schema
+  // (verified: duneDb.js's addonOpsInventorySummary always returns
+  // totalCrafted: null, explicitly, by design -- never estimated) --
+  // `?? 0` here rendered a false, fabricated-looking zero for a field
+  // that is genuinely unavailable, not genuinely zero. setText() itself
+  // already renders null/undefined as a dash, so passing the real
+  // value through directly (not coalesced to 0) is the fix.
+  setText(invCraftedEl, d.totalCrafted);
 
   clearTbody(invTemplateBodyEl);
   for (const i of d.itemsByTemplate || []) {

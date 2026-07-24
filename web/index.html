@@ -69,12 +69,12 @@
     <section class="card">
       <div class="section-heading">
         <div>
-          <p class="eyebrow">v0.3.1 live bridge</p>
-          <h2>OPS Health Foundation</h2>
+          <p class="eyebrow">Bridge connection status</p>
+          <h2>Data Freshness &amp; Reliability</h2>
         </div>
-        <p class="provider-label">Derived from ops.health.* bridge reads</p>
+        <p class="provider-label">Live · ops.health.*</p>
       </div>
-      <p class="section-copy">Reports bridge/source status, successful read freshness, in-session aggregate impact, and an operator-facing summary through the approved ops:read permission boundary.</p>
+      <p class="section-copy">Is the data on this page trustworthy right now? Shows whether the connection to the Console is healthy, how recently it last successfully refreshed, and whether the numbers changed meaningfully since your last check.</p>
       <div class="ops-health-grid" aria-label="OPS health foundation">
         <article class="metric-card health-card">
           <span class="metric-label">Source Health</span>
@@ -102,12 +102,12 @@
     <section class="card">
       <div class="section-heading">
         <div>
-          <p class="eyebrow">v0.5.0 NOC Dashboard</p>
+          <p class="eyebrow">Backend services</p>
           <h2>Service Health Map</h2>
         </div>
-        <p class="provider-label">ops.health.* bridge actions + dune ready</p>
+        <p class="provider-label">Live · ops.health.* + dune ready</p>
       </div>
-      <p class="section-copy">Service dependency status: Postgres, RabbitMQ, Director, Gateway, Survival_1, Overmap, TextRouter.</p>
+      <p class="section-copy">Status, uptime, and restart count for every backend service this server depends on (database, message queue, game servers, and routing) — a service reporting anything other than healthy is worth investigating before it affects players.</p>
       <div class="table-wrap">
         <table aria-label="Service health">
           <thead><tr><th scope="col">Service</th><th scope="col">Status</th><th scope="col">Uptime</th><th scope="col">Restarts</th></tr></thead>
@@ -119,12 +119,12 @@
     <section class="card">
       <div class="section-heading">
         <div>
-          <p class="eyebrow">v0.4.0 NOC Dashboard</p>
+          <p class="eyebrow">Host machine</p>
           <h2>Server Resources</h2>
         </div>
-        <p class="provider-label">ops.health.* bridge actions</p>
+        <p class="provider-label">Live · ops.health.*</p>
       </div>
-      <p class="section-copy">Resource utilization snapshot. Live CPU, memory, and disk metrics require Prometheus bridge (Core R2).</p>
+      <p class="section-copy">CPU, memory, and disk usage on the machine hosting this server. These panels stay unavailable ("—") until the optional Prometheus metrics stack is running — see the Metrics tab.</p>
       <div class="summary-grid" aria-label="Server resources">
         <article class="metric-card">
           <span class="metric-label">CPU (%)</span>
@@ -148,12 +148,12 @@
     <section class="card">
       <div class="section-heading">
         <div>
-          <p class="eyebrow">v0.4.0 NOC Dashboard</p>
-          <h2>Deployment Health</h2>
+          <p class="eyebrow">Farm server status</p>
+          <h2>Farm &amp; Population Summary</h2>
         </div>
-        <p class="provider-label">ops.health.farms + ops.health.players</p>
+        <p class="provider-label">Live · ops.health.farms + ops.health.players</p>
       </div>
-      <p class="section-copy">Farm/server aggregate health and player population summary.</p>
+      <p class="section-copy">How many farm servers exist and how many are ready/alive, alongside how many players are currently connected and how many server-to-server connections are active.</p>
       <div class="summary-grid" aria-label="Deployment health">
         <article class="metric-card">
           <span class="metric-label">Total Farms</span>
@@ -183,10 +183,11 @@
       <div class="section-heading">
         <div>
           <p class="eyebrow">Live population</p>
-          <h2>OPS Health Aggregate</h2>
+          <h2>Player &amp; Farm Totals</h2>
         </div>
         <p id="provider-label" class="provider-label">Provider: unknown</p>
       </div>
+      <p class="section-copy">Total, online, and offline player counts alongside farm-site readiness, refreshed on every check. "Last Read" shows exactly when this row was last confirmed accurate.</p>
       <div id="empty-state" class="empty-state" hidden>No OPS health aggregate data is available.</div>
       <div class="table-wrap">
         <table aria-label="OPS health aggregate table">
@@ -209,12 +210,12 @@
     <section class="card">
       <div class="section-heading">
         <div>
-          <p class="eyebrow">Data source health</p>
-          <h2>KPI Capability</h2>
+          <p class="eyebrow">What can I trust right now?</p>
+          <h2>Data Source Status</h2>
         </div>
-        <p class="provider-label">Read-only support map</p>
+        <p class="provider-label">Computed every refresh</p>
       </div>
-      <p class="section-copy">Shows which reporting categories are actually live right now, computed from each data source's real status on the most recent refresh — never a static claim. A capability backed by more than one source (e.g. Population & Activity) shows "partial" if only some of its sources are live.</p>
+      <p class="section-copy">Which of this addon's reporting categories are actually live right now, computed from each data source's real status on the most recent refresh — never a static claim. A category backed by more than one source (e.g. Population &amp; Activity) shows "partial" if only some of its sources are live.</p>
       <div class="capability-grid" aria-label="KPI capability categories">
         <article class="capability-card">
           <h3>Population & Activity</h3>
@@ -262,12 +263,12 @@
     <section class="card">
       <div class="section-heading">
         <div>
-          <p class="eyebrow">Computed metrics</p>
-          <h2>Read-only KPI Panels</h2>
+          <p class="eyebrow">Population at a glance</p>
+          <h2>Engagement Snapshot</h2>
         </div>
-        <p class="provider-label">Derived from OPS health aggregates</p>
+        <p class="provider-label">Computed from OPS health totals</p>
       </div>
-      <p class="section-copy">These panels calculate only from fields returned by the privacy-safe OPS health aggregate payload.</p>
+      <p class="section-copy">Active-player rate, average character level, and the top faction and guild by member count — computed only from privacy-safe aggregate totals, never per-player data.</p>
       <div class="kpi-grid" aria-label="Read-only KPI panels">
         <article class="kpi-card">
           <span class="metric-label">Active Rate</span>
@@ -300,12 +301,12 @@
     <section class="card">
       <div class="section-heading">
         <div>
-          <p class="eyebrow">v0.4.0</p>
+          <p class="eyebrow">Activity windows &amp; retention</p>
           <h2>Player Activity</h2>
         </div>
-        <p class="provider-label">Derived from ops.health.players</p>
+        <p class="provider-label">Live · ops.activity.summary</p>
       </div>
-      <p class="section-copy">Online players and total counts from ops:read bridge. Fine-grained activity windows, guild/faction/map distribution require ops.activity.summary (planned).</p>
+      <p class="section-copy">How many players were active in the last hour, day, and week, plus new/returning/inactive counts and per-guild, per-faction, and per-map breakdowns.</p>
       <div id="act-availability-note" class="availability-note" hidden></div>
       <div class="summary-grid" aria-label="Activity metrics">
         <article class="metric-card">
@@ -373,12 +374,12 @@
     <section class="card">
       <div class="section-heading">
         <div>
-          <p class="eyebrow" style="color:#c4b5fd">v0.5.0</p>
+          <p class="eyebrow" style="color:#c4b5fd">Death tracking</p>
           <h2>Combat &amp; Death Analytics</h2>
         </div>
-        <p class="provider-label">ops.combat.deaths</p>
+        <p class="provider-label">Live · ops.combat.deaths</p>
       </div>
-      <p class="section-copy">PvP/PvE death breakdowns: cause, map distribution, and hostile NPC tracking.</p>
+      <p class="section-copy">Total deaths broken down by cause and map, plus hostile-NPC kill counts. PvP/PvE classification is not yet available — all deaths currently report as PvE, a known limitation, not an error.</p>
       <div id="cmb-availability-note" class="availability-note" hidden></div>
       <div class="summary-grid" aria-label="Combat metrics">
         <article class="metric-card">
@@ -426,10 +427,10 @@
     <section class="card">
       <div class="section-heading spice">
         <div>
-          <p class="eyebrow">v0.6.0</p>
+          <p class="eyebrow">Spice field inventory</p>
           <h2>Spice Melange</h2>
         </div>
-        <p class="provider-label">ops.resources.summary</p>
+        <p class="provider-label">Live · ops.resources.summary</p>
       </div>
       <p class="section-copy">Real, per-instance spice-field inventory for Deep Desert and Hagga Basin. Each instance/sietch is bordered and labeled by its live-configured combat state (red = PvP, green = PvE). Active field counts and potential spice totals are always real, live snapshots; a size tier with zero active fields still shows as a real 0, never omitted.</p>
       <div id="res-loading-note" class="availability-note res-loading-note">Loading spice-field data…</div>
@@ -517,12 +518,12 @@
     <section class="card">
       <div class="section-heading">
         <div>
-          <p class="eyebrow">v0.7.0</p>
-          <h2>Economy & Trade</h2>
+          <p class="eyebrow">Currency &amp; trading</p>
+          <h2>Economy &amp; Trade</h2>
         </div>
-        <p class="provider-label">ops.economy.summary</p>
+        <p class="provider-label">Live · ops.economy.summary</p>
       </div>
-      <p class="section-copy">Currency supply, exchange order volume, and fulfilled trade analysis.</p>
+      <p class="section-copy">How much in-game currency exists and who holds it, plus how many trade orders are active vs. fulfilled and how much tax/fees have been collected — all aggregate totals, no per-player detail.</p>
       <div id="eco-availability-note" class="availability-note" hidden></div>
       <div class="summary-grid" aria-label="Economy metrics">
         <article class="metric-card">
@@ -568,12 +569,12 @@
     <section class="card">
       <div class="section-heading">
         <div>
-          <p class="eyebrow">v0.8.0</p>
-          <h2>Inventory & Crafting</h2>
+          <p class="eyebrow">Items in circulation</p>
+          <h2>Inventory &amp; Crafting</h2>
         </div>
-        <p class="provider-label">ops.inventory.summary</p>
+        <p class="provider-label">Live · ops.inventory.summary</p>
       </div>
-      <p class="section-copy">Item counts, inventory usage, and crafting activity.</p>
+      <p class="section-copy">Total items and storage containers in use, broken down by item template, plus per-container storage load. "Total Crafted" has no real data source in this game version and always shows as unavailable — never a fabricated count.</p>
       <div id="inv-availability-note" class="availability-note" hidden></div>
       <div class="summary-grid" aria-label="Inventory metrics">
         <article class="metric-card">
@@ -611,12 +612,12 @@
     <section class="card">
       <div class="section-heading">
         <div>
-          <p class="eyebrow">v0.9.0</p>
-          <h2>Location & Territory</h2>
+          <p class="eyebrow">Permanently out of scope</p>
+          <h2>Location &amp; Territory</h2>
         </div>
-        <p class="provider-label">ops.location.activity</p>
+        <p class="provider-label">Not implemented, by design</p>
       </div>
-      <p class="section-copy">Map activity, player density, and marker distribution.</p>
+      <p class="section-copy">Per-player real-time location tracking is intentionally not part of this addon's scope — that data already belongs to, and is shown by, the Console's own map. This tab will always report unavailable; that is not a bug or a temporary gap.</p>
       <div id="loc-availability-note" class="availability-note" hidden></div>
       <div class="summary-grid" aria-label="Location metrics">
         <article class="metric-card">
@@ -650,12 +651,12 @@
     <section class="card">
       <div class="section-heading">
         <div>
-          <p class="eyebrow">v1.0.0</p>
+          <p class="eyebrow">Bridge request health</p>
           <h2>SOC Operations Center</h2>
         </div>
-        <p class="provider-label">ops.soc.summary</p>
+        <p class="provider-label">Live · ops.soc.summary</p>
       </div>
-      <p class="section-copy">Unified platform health summary aggregating all observability metrics.</p>
+      <p class="section-copy">How many requests this addon's bridge connection has handled and how many failed, computed from a real in-memory counter — a rising error rate here usually means the Console or database is under strain, not this addon itself.</p>
       <div id="soc-availability-note" class="availability-note" hidden></div>
       <div class="summary-grid" aria-label="SOC metrics">
         <article class="metric-card">
@@ -680,12 +681,12 @@
     <section class="card">
       <div class="section-heading">
         <div>
-          <p class="eyebrow">v1.0.0</p>
+          <p class="eyebrow">Optional metrics stack</p>
           <h2>Metrics Health</h2>
         </div>
-        <p class="provider-label">ops.health.prometheus</p>
+        <p class="provider-label">Live · ops.health.prometheus</p>
       </div>
-      <p class="section-copy">Prometheus stack health including target status, per-service availability, and aggregated resource usage.</p>
+      <p class="section-copy">Health of the optional Prometheus/cAdvisor/node-exporter stack, including scrape-target status and average CPU/memory. Shows as unavailable unless the operator has run `dune metrics start` — that's expected, not a defect. Per-container restart counts are not currently obtainable on this deployment (a real cAdvisor limitation) and always show as unavailable, never a fabricated 0.</p>
       <div id="mtr-availability-note" class="availability-note" hidden></div>
       <div class="summary-grid" aria-label="Prometheus health">
         <article class="metric-card">
@@ -706,7 +707,7 @@
         </article>
         <article class="metric-card">
           <span class="metric-label">Restarts (24h)</span>
-          <strong id="mtr-restarts">0</strong>
+          <strong id="mtr-restarts">—</strong>
         </article>
       </div>
       <div class="table-wrap">

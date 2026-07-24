@@ -137,6 +137,28 @@ test("renderInventory shows 'Not available', not 0, for a not-yet-implemented Co
   assert.notEqual(text(window, "#inv-items"), "0");
 });
 
+// F-1-style false-zero regression: totalCrafted has no real data source
+// anywhere in Core's schema (duneDb.js's addonOpsInventorySummary always
+// returns totalCrafted: null, explicitly, by design). Previously
+// setText(invCraftedEl, d.totalCrafted ?? 0) coalesced that real null to
+// a fabricated-looking 0 even when the rest of the inventory source was
+// genuinely live -- this is the exact false-zero anti-pattern already
+// fixed elsewhere in this file for other sources, just not caught here
+// since the whole-source-unavailable case (above) happened to also
+// render "—" for a different reason, masking the gap.
+test("Total Crafted never renders a fabricated 0 even when the rest of the inventory source is genuinely live", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, {
+    getInventory: async () => live({ totalItems: 42, totalInventories: 7, totalCrafted: null, itemsByTemplate: [], storageUsage: [] })
+  });
+  runAddon(window);
+  await flushAsync();
+
+  assert.equal(text(window, "#inv-items"), "42", "totalItems is real and live, must render normally");
+  assert.equal(text(window, "#inv-crafted"), "—", "totalCrafted has no real source and must never render a fabricated 0");
+  assert.notEqual(text(window, "#inv-crafted"), "0");
+});
+
 // ── ops.health.prometheus: "not implemented" vs. "stack not running" ──
 //
 // Core distinguishes these two real, honest, but different states: a
