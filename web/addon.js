@@ -86,6 +86,7 @@ const ddPveInstancesEl = document.querySelector("#dd-pve-instances");
 const ddSizeBodyEl = document.querySelector("#dd-size-body");
 const ddEmptyStateEl = document.querySelector("#dd-empty-state");
 const ddInstancesEl = document.querySelector("#dd-instances");
+const ddInstanceCountEl = document.querySelector("#dd-instance-count");
 const hbSectionEl = document.querySelector("#res-hagga-basin-section");
 const hbActiveFieldsEl = document.querySelector("#hb-active-fields");
 const hbRemainingSpiceEl = document.querySelector("#hb-remaining-spice");
@@ -94,6 +95,7 @@ const hbPveInstancesEl = document.querySelector("#hb-pve-instances");
 const hbSizeBodyEl = document.querySelector("#hb-size-body");
 const hbEmptyStateEl = document.querySelector("#hb-empty-state");
 const hbInstancesEl = document.querySelector("#hb-instances");
+const hbInstanceCountEl = document.querySelector("#hb-instance-count");
 
 const ecoHoldersEl = document.querySelector("#eco-holders");
 const ecoSupplyEl = document.querySelector("#eco-supply");
@@ -451,12 +453,63 @@ function capabilityStatusFor(sourceNames, sourceResultsByName) {
   return "partial";
 }
 
+// Real inline <svg> icons, built via createElementNS -- not a data: URI
+// background-image (which the addon's own CSP would block: img-src is
+// 'self', and a data: URI is neither 'self' nor a same-origin file), and
+// not an icon font (would add a new asset-loading dependency this
+// zero-runtime-dependency addon doesn't otherwise have). This is the
+// addon's first icon usage anywhere -- previously every status
+// indicator in the whole addon (online/offline, PvP/PvE,
+// supported/unavailable) communicated entirely through color-coded
+// text, with zero iconography.
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+function makeStatusIcon(kind) {
+  const svg = document.createElementNS(SVG_NS, "svg");
+  svg.setAttribute("viewBox", "0 0 16 16");
+  svg.setAttribute("width", "12");
+  svg.setAttribute("height", "12");
+  svg.setAttribute("aria-hidden", "true");
+  svg.classList.add("status-icon");
+
+  const path = document.createElementNS(SVG_NS, "path");
+  path.setAttribute("fill", "none");
+  path.setAttribute("stroke", "currentColor");
+  path.setAttribute("stroke-width", "2");
+  path.setAttribute("stroke-linecap", "round");
+  path.setAttribute("stroke-linejoin", "round");
+
+  if (kind === "supported") {
+    // Checkmark
+    path.setAttribute("d", "M3 8.5L6.5 12L13 4.5");
+  } else if (kind === "partial") {
+    // Exclamation mark (triangle-free, reads cleanly at 12px)
+    path.setAttribute("d", "M8 3.5V9.5");
+    const dot = document.createElementNS(SVG_NS, "circle");
+    dot.setAttribute("cx", "8");
+    dot.setAttribute("cy", "12.5");
+    dot.setAttribute("r", "1");
+    dot.setAttribute("fill", "currentColor");
+    dot.setAttribute("stroke", "none");
+    svg.appendChild(path);
+    svg.appendChild(dot);
+    return svg;
+  } else {
+    // X
+    path.setAttribute("d", "M4 4L12 12M12 4L4 12");
+  }
+  svg.appendChild(path);
+  return svg;
+}
+
 function renderCapabilities(sourceResultsByName) {
   for (const el of capabilityEls) {
     const sourceNames = (el.dataset.capabilitySources || "").split(",").map((s) => s.trim()).filter(Boolean);
     const status = sourceNames.length ? capabilityStatusFor(sourceNames, sourceResultsByName) : "unavailable";
     el.className = `capability-status capability-${status}`;
-    el.textContent = status;
+    while (el.firstChild) el.removeChild(el.firstChild);
+    el.appendChild(makeStatusIcon(status));
+    el.appendChild(document.createTextNode(status));
   }
 }
 
@@ -697,10 +750,51 @@ function combatBadgeLabel(state) {
   return s || "UNKNOWN";
 }
 
+// Crossed-swords for PvP, a shield for PvE/CONFLICT/MIXED/UNKNOWN --
+// distinct iconography from the checkmark/exclamation/x used for
+// capability status (a different semantic domain: this is about a real
+// game-mode designation, not a data-availability state), matching the
+// same real, resolver-backed combatState value already used for the
+// badge's text/color -- the icon is purely decorative reinforcement,
+// never a second, independently-computed signal.
+function makeCombatIcon(kind) {
+  const svg = document.createElementNS(SVG_NS, "svg");
+  svg.setAttribute("viewBox", "0 0 16 16");
+  svg.setAttribute("width", "12");
+  svg.setAttribute("height", "12");
+  svg.setAttribute("aria-hidden", "true");
+  svg.classList.add("status-icon");
+
+  if (kind === "pvp") {
+    const g = document.createElementNS(SVG_NS, "g");
+    g.setAttribute("fill", "none");
+    g.setAttribute("stroke", "currentColor");
+    g.setAttribute("stroke-width", "1.6");
+    g.setAttribute("stroke-linecap", "round");
+    const blade1 = document.createElementNS(SVG_NS, "path");
+    blade1.setAttribute("d", "M2.5 2.5L13.5 13.5");
+    const blade2 = document.createElementNS(SVG_NS, "path");
+    blade2.setAttribute("d", "M13.5 2.5L2.5 13.5");
+    g.appendChild(blade1);
+    g.appendChild(blade2);
+    svg.appendChild(g);
+  } else {
+    const shield = document.createElementNS(SVG_NS, "path");
+    shield.setAttribute("d", "M8 2L13 4V8C13 11 10.8 12.8 8 14C5.2 12.8 3 11 3 8V4L8 2Z");
+    shield.setAttribute("fill", "none");
+    shield.setAttribute("stroke", "currentColor");
+    shield.setAttribute("stroke-width", "1.6");
+    shield.setAttribute("stroke-linejoin", "round");
+    svg.appendChild(shield);
+  }
+  return svg;
+}
+
 function makeCombatBadge(state) {
   const span = document.createElement("span");
   span.className = `res-combat-badge ${combatBadgeClass(state)}`;
-  span.textContent = combatBadgeLabel(state);
+  span.appendChild(makeCombatIcon(combatBadgeClass(state) === "pvp" ? "pvp" : "pve"));
+  span.appendChild(document.createTextNode(combatBadgeLabel(state)));
   return span;
 }
 
@@ -824,7 +918,7 @@ function sortHaggaBasinInstances(instances) {
 }
 
 function renderMapSection(section, els, sortFn) {
-  const { sectionEl, activeFieldsEl, remainingSpiceEl, pvpEl, pveEl, sizeBodyEl, emptyStateEl, instancesEl } = els;
+  const { sectionEl, activeFieldsEl, remainingSpiceEl, pvpEl, pveEl, sizeBodyEl, emptyStateEl, instancesEl, instanceCountEl } = els;
   if (sectionEl) sectionEl.hidden = false;
 
   const summary = (section && section.summary) || { totalActiveFields: 0, totalRemainingSpice: 0, pvpInstances: 0, pveInstances: 0, bySize: [] };
@@ -835,6 +929,15 @@ function renderMapSection(section, els, sortFn) {
   setText(pvpEl, formatCount(summary.pvpInstances));
   setText(pveEl, formatCount(summary.pveInstances));
   renderSizeTable(sizeBodyEl, summary.bySize);
+
+  // A real, derived count of the instances actually being rendered below
+  // -- never a separately-tracked number that could drift from what's
+  // really shown (e.g. instances.length, not summary.pvpInstances +
+  // summary.pveInstances, which could disagree if a combat state ever
+  // resolves to CONFLICT/MIXED/UNKNOWN).
+  if (instanceCountEl) {
+    instanceCountEl.textContent = instances.length === 1 ? "1 instance" : `${instances.length} instances`;
+  }
 
   if (instancesEl) while (instancesEl.firstChild) instancesEl.removeChild(instancesEl.firstChild);
 
@@ -857,6 +960,7 @@ function clearResourcesSections() {
   for (const sectionEl of [ddSectionEl, hbSectionEl]) if (sectionEl) sectionEl.hidden = true;
   for (const emptyEl of [ddEmptyStateEl, hbEmptyStateEl]) if (emptyEl) emptyEl.hidden = true;
   for (const listEl of [ddInstancesEl, hbInstancesEl]) if (listEl) while (listEl.firstChild) listEl.removeChild(listEl.firstChild);
+  for (const countEl of [ddInstanceCountEl, hbInstanceCountEl]) if (countEl) countEl.textContent = "";
   clearTbody(ddSizeBodyEl);
   clearTbody(hbSizeBodyEl);
 }
@@ -880,7 +984,8 @@ function renderResources(result) {
     pveEl: ddPveInstancesEl,
     sizeBodyEl: ddSizeBodyEl,
     emptyStateEl: ddEmptyStateEl,
-    instancesEl: ddInstancesEl
+    instancesEl: ddInstancesEl,
+    instanceCountEl: ddInstanceCountEl
   }, sortDeepDesertInstances);
 
   renderMapSection(d.haggaBasin, {
@@ -891,7 +996,8 @@ function renderResources(result) {
     pveEl: hbPveInstancesEl,
     sizeBodyEl: hbSizeBodyEl,
     emptyStateEl: hbEmptyStateEl,
-    instancesEl: hbInstancesEl
+    instancesEl: hbInstancesEl,
+    instanceCountEl: hbInstanceCountEl
   }, sortHaggaBasinInstances);
 }
 

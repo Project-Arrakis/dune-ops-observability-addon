@@ -787,3 +787,89 @@ test("KPI Capability panel updates on refresh — a source recovering from unava
   await flushAsync();
   assert.equal(text(window, "#cap-economy"), "supported", "must update to the new real status, not remain stuck on the prior refresh's value");
 });
+
+// ── Visual redesign (Tier 2.4): capability status icons ──
+//
+// Previously every status indicator in the addon (capability
+// supported/partial/unavailable, PvP/PvE combat badges) communicated
+// entirely through color-coded text, with zero iconography anywhere.
+// These tests assert the new inline <svg> icons actually render as real
+// DOM elements alongside the existing text -- not just that the text
+// itself is still correct (already covered above), which wouldn't catch
+// a regression that silently dropped the icon while leaving the label
+// intact.
+
+test("capability status pills render a real inline SVG icon alongside the text label, not text-only", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, allSourcesLive());
+  runAddon(window);
+  await flushAsync();
+
+  const el = window.document.querySelector("#cap-resources");
+  const icon = el.querySelector("svg.status-icon");
+  assert.ok(icon, "capability status pill must contain a real <svg> icon element");
+  assert.equal(text(window, "#cap-resources"), "supported", "icon must not corrupt the existing text label");
+});
+
+test("combat badges render a real inline SVG icon alongside the PVP/PVE text label", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, {
+    getResources: async () => live({
+      deepDesert: {
+        summary: { totalActiveFields: 3, totalRemainingSpice: 15000, pvpInstances: 1, pveInstances: 0, bySize: [] },
+        instances: [deepDesertInstance({ combatState: "PVP" })]
+      },
+      haggaBasin: emptySection()
+    })
+  });
+  runAddon(window);
+  await flushAsync();
+
+  const badge = window.document.querySelector("#dd-instances .res-combat-badge");
+  const icon = badge.querySelector("svg.status-icon");
+  assert.ok(icon, "combat badge must contain a real <svg> icon element");
+  assert.equal(badge.textContent, "PVP");
+});
+
+// ── Spice Melange layout pass: per-section instance-count badge ──
+
+test("each map section shows a real, derived instance count next to its heading, singular vs. plural worded correctly", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, {
+    getResources: async () => live({
+      deepDesert: {
+        summary: { totalActiveFields: 6, totalRemainingSpice: 30000, pvpInstances: 1, pveInstances: 1, bySize: [] },
+        instances: [
+          deepDesertInstance({ dimensionIndex: 0, name: "DeepDesert 0" }),
+          deepDesertInstance({ dimensionIndex: 1, name: "DeepDesert 1" })
+        ]
+      },
+      haggaBasin: {
+        summary: { totalActiveFields: 5, totalRemainingSpice: 25000, pvpInstances: 1, pveInstances: 0, bySize: [{ size: "Small", activeFields: 5 }] },
+        instances: [haggaBasinInstance()]
+      }
+    })
+  });
+  runAddon(window);
+  await flushAsync();
+
+  assert.equal(text(window, "#dd-instance-count"), "2 instances");
+  assert.equal(text(window, "#hb-instance-count"), "1 instance");
+});
+
+test("the instance-count badge clears to empty when a map section has zero instances or the source is unavailable", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, {
+    getResources: async () => live({ deepDesert: emptySection(), haggaBasin: emptySection() })
+  });
+  runAddon(window);
+  await flushAsync();
+  assert.equal(text(window, "#dd-instance-count"), "0 instances");
+
+  installMockProvider(window, {
+    getResources: async () => unavailable("bridge_error", "ops.resources.summary")
+  });
+  window.document.querySelector("#refresh-players").click();
+  await flushAsync();
+  assert.equal(text(window, "#dd-instance-count"), "", "must clear the stale count, not leave a prior refresh's number visible when the source becomes unavailable");
+});

@@ -182,7 +182,7 @@
     <section class="card">
       <div class="section-heading">
         <div>
-          <p class="eyebrow">A3</p>
+          <p class="eyebrow">Live population</p>
           <h2>OPS Health Aggregate</h2>
         </div>
         <p id="provider-label" class="provider-label">Provider: unknown</p>
@@ -209,7 +209,7 @@
     <section class="card">
       <div class="section-heading">
         <div>
-          <p class="eyebrow">A4</p>
+          <p class="eyebrow">Data source health</p>
           <h2>KPI Capability</h2>
         </div>
         <p class="provider-label">Read-only support map</p>
@@ -262,12 +262,12 @@
     <section class="card">
       <div class="section-heading">
         <div>
-          <p class="eyebrow">A5</p>
+          <p class="eyebrow">Computed metrics</p>
           <h2>Read-only KPI Panels</h2>
         </div>
         <p class="provider-label">Derived from OPS health aggregates</p>
       </div>
-      <p class="section-copy">These panels calculate only from fields returned by the privacy-safe Release 0.4.1 OPS health aggregate payload.</p>
+      <p class="section-copy">These panels calculate only from fields returned by the privacy-safe OPS health aggregate payload.</p>
       <div class="kpi-grid" aria-label="Read-only KPI panels">
         <article class="kpi-card">
           <span class="metric-label">Active Rate</span>
@@ -426,12 +426,12 @@
     <section class="card">
       <div class="section-heading spice">
         <div>
-          <p class="eyebrow" style="color:#c4b5fd">v0.6.0</p>
-          <h2 style="color:#c4b5fd">Spice Melange</h2>
+          <p class="eyebrow">v0.6.0</p>
+          <h2>Spice Melange</h2>
         </div>
         <p class="provider-label">ops.resources.summary</p>
       </div>
-      <p class="section-copy" style="color:#c4b5fd">Real, per-instance spice-field inventory for Deep Desert and Hagga Basin. Each instance/sietch is bordered and labeled by its live-configured combat state (red = PvP, green = PvE). Active field counts and potential spice totals are always real, live snapshots; a size tier with zero active fields still shows as a real 0, never omitted.</p>
+      <p class="section-copy">Real, per-instance spice-field inventory for Deep Desert and Hagga Basin. Each instance/sietch is bordered and labeled by its live-configured combat state (red = PvP, green = PvE). Active field counts and potential spice totals are always real, live snapshots; a size tier with zero active fields still shows as a real 0, never omitted.</p>
       <div id="res-loading-note" class="availability-note res-loading-note">Loading spice-field data…</div>
       <div id="res-availability-note" class="availability-note" hidden></div>
 
@@ -439,6 +439,7 @@
       <div id="res-deep-desert-section" class="res-map-section" hidden>
         <div class="section-heading res-map-heading">
           <h3>Deep Desert</h3>
+          <span id="dd-instance-count" class="res-map-instance-count"></span>
         </div>
         <div class="summary-grid" aria-label="Deep Desert summary">
           <article class="metric-card">
@@ -477,6 +478,7 @@
       <div id="res-hagga-basin-section" class="res-map-section" hidden>
         <div class="section-heading res-map-heading">
           <h3>Hagga Basin</h3>
+          <span id="hb-instance-count" class="res-map-instance-count"></span>
         </div>
         <div class="summary-grid" aria-label="Hagga Basin summary">
           <article class="metric-card">
