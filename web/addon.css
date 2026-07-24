@@ -416,12 +416,32 @@ tbody tr:hover {
 }
 
 .pill {
-  color: #d1d5db;
+  color: var(--text-secondary);
   font-weight: 700;
 }
 
 .pill-online {
   color: #86efac;
+}
+
+/* The Players tab's OPS Health Aggregate row is this section's one
+   piece of primary content -- give its numeric cells slightly more
+   visual weight than a generic table row, consistent with this
+   redesign's "not everything is the same visual weight" principle,
+   without turning a genuine single-row summary into an oversized
+   layout. */
+#players-body td {
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+#players-body td:first-child {
+  color: var(--text-tertiary);
+  font-weight: 700;
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .empty-state {
