@@ -1,5 +1,7 @@
 dist/
 node_modules/
+__pycache__/
+*.pyc
 
 # Scraper cache directories
 ops-observability/dev-tools/.placeable-cache/
