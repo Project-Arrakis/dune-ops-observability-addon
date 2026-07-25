@@ -15,3 +15,35 @@ Trivy (fs --scanners vuln,secret):
 
 git diff --check (main..release/v1.0.0):
   Result: no whitespace errors or conflict markers
+
+===================================
+Update: 2026-07-25 (v0.4.7 pre-release scan)
+===================================
+Date: 2026-07-25T00:06:48Z
+Revision: a4f577b5633a4b28c4aa1c7f2a5722be738511d7 (release/v0.4.7, ancestor of v0.4.7 tag)
+Tools: Gitleaks 8.x, Semgrep 1.168.0, ShellCheck, Trivy fs
+
+Gitleaks:
+  Result: no leaks found (empty results array)
+
+Semgrep:
+  Result: 0 findings (4 non-blocking parser errors on unrelated
+  third-party YAML, not source findings)
+
+ShellCheck:
+  Result: no output (clean, --severity=warning)
+
+Trivy (fs):
+  Result: no vulnerabilities or secrets
+
+Note: this repo's evidence convention had drifted since 2026-07-04 --
+no per-version scan output had been recorded for any 0.4.x release
+before this update, and a separate, never-committed set of raw scan
+artifacts for 0.4.7 was found sitting in an untracked
+ops-observability/evidence/releases/0.4.7/ directory during a
+home-directory cleanup audit. Consolidated here to match this file's
+established running-log convention rather than introducing a
+divergent per-version directory structure unilaterally. Raw JSON/txt
+artifacts are not duplicated into git; this summary is the durable
+record, consistent with how the 2026-07-04 baseline above was also
+recorded as prose, not raw tool output.
