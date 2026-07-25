@@ -6,7 +6,14 @@ set -euo pipefail
 BACKUP="${1:-}"; [ -z "$BACKUP" ] && { echo "Usage: $0 <backup-dir>"; exit 1; }
 [ ! -d "$BACKUP" ] && { echo "Backup not found: $BACKUP"; exit 1; }
 
-INT="/home/darkdante/dune-docker-addon/e2e-integration"
+# BUG FIX (2026-07-25): this used to point at
+# /home/darkdante/dune-docker-addon/e2e-integration -- a test-integration
+# clone inside a 15GB redundant scratch directory that was deleted during
+# a home-directory cleanup audit. The Docker volume names referenced
+# below (dune-awakening-selfhost-docker_dune-*) already made clear this
+# script's real target was always the actual production stack, not a
+# disposable e2e clone -- pointing INT at the real deployment path.
+INT="/home/darkdante/dune-awakening-selfhost-docker"
 
 echo "=== RESTORE: $BACKUP ==="
 

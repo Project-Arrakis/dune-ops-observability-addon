@@ -28,7 +28,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # addon), causing this script to fail at Gate 0 looking for addon.json in
 # the wrong directory on every real invocation.
 ADDON_REPO="$(cd "$SCRIPT_DIR/.." && pwd)"
-CATALOG_REPO="${HOME}/dune-docker-addon/dune-docker-addons"
+# BUG FIX (2026-07-25): this used to point at
+# ~/dune-docker-addon/dune-docker-addons -- a nested clone inside a
+# 15GB redundant scratch directory that was deleted during a home-
+# directory cleanup audit. The real catalog fork clone now lives
+# directly at ~/dune-docker-addons (with proper origin=fork/
+# upstream=real-upstream remotes, matching this project's convention).
+CATALOG_REPO="${HOME}/dune-docker-addons"
 UPSTREAM="Red-Blink/dune-docker-addons"
 BRANCH="catalog-${VERSION}"
 

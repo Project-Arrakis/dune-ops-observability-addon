@@ -48,7 +48,18 @@ if $CHECK_ALL || $CHECK_CORE; then
     else
       BEHIND=$(git rev-list origin/main..upstream/main --count 2>/dev/null || echo "?")
       fail "main behind upstream by $BEHIND commits"
-      echo "         Fix: cd $CORE_DIR && git checkout main && git reset --hard upstream/main && git push --force"
+      # BUG FIX (2026-07-25): the suggested fix here used to be
+      # `git reset --hard upstream/main && git push --force` -- the
+      # exact same dangerous pattern that caused a real, confirmed
+      # local-history-loss incident elsewhere in this project
+      # (acp-ops-monitor's validate-and-report.sh, fixed the same day).
+      # This fork carries permanent local-only history (incident
+      # reports, merged PRs that will never be upstreamed), so
+      # reset --hard is never actually safe here even when "behind" --
+      # merge --ff-only is the correct operation: identical result when
+      # genuinely, purely behind, but fails loudly instead of silently
+      # discarding commits if local-only history exists.
+      echo "         Fix: cd $CORE_DIR && git checkout main && git merge --ff-only upstream/main && git push origin main"
     fi
 
     # Integration/main vs main
@@ -58,7 +69,7 @@ if $CHECK_ALL || $CHECK_CORE; then
       pass "integration/main based on main"
     elif [ -n "$I" ]; then
       fail "integration/main not based on main — needs rebase"
-      echo "         Fix: cd $CORE_DIR && git checkout integration/main && git rebase main && git push --force"
+      echo "         Fix: cd $CORE_DIR && git checkout integration/main && git rebase main && git push --force-with-lease"
     else
       warn "integration/main not found on origin"
     fi
@@ -87,7 +98,13 @@ fi
 
 # ─── Addon ───
 if $CHECK_ALL || $CHECK_ADDON; then
-  ADDON_DIR="${HOME}/dune-docker-addon/addon-main"
+  # BUG FIX (2026-07-25): this used to point at
+  # ~/dune-docker-addon/addon-main -- a nested clone of this exact repo,
+  # living inside a 15GB redundant scratch directory that was deleted
+  # during a home-directory cleanup audit. This script IS run from the
+  # real addon repo -- it should check itself, not a stale nested clone
+  # of itself.
+  ADDON_DIR="${HOME}/dune-ops-observability-addon"
   if [ -d "$ADDON_DIR" ]; then
     echo
     echo "--- Addon ($ADDON_DIR) ---"
@@ -117,7 +134,12 @@ fi
 
 # ─── Catalog ───
 if $CHECK_ALL || $CHECK_CATALOG; then
-  CATALOG_DIR="${HOME}/dune-docker-addon/dune-docker-addons"
+  # BUG FIX (2026-07-25): this used to point at
+  # ~/dune-docker-addon/dune-docker-addons -- a nested clone inside a
+  # 15GB redundant scratch directory that was deleted during a home-
+  # directory cleanup audit. The real catalog fork clone now lives
+  # directly at ~/dune-docker-addons.
+  CATALOG_DIR="${HOME}/dune-docker-addons"
   if [ -d "$CATALOG_DIR" ]; then
     echo
     echo "--- Catalog ($CATALOG_DIR) ---"
