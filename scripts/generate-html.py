@@ -5,7 +5,12 @@ import os, sys
 from datetime import date
 from pathlib import Path
 
-DOCS = os.path.expanduser("~/dune-docker-addon/addon-main/docs")
+# BUG FIX (2026-07-25): this used to point at
+# ~/dune-docker-addon/addon-main/docs -- a nested clone of this exact
+# repo, living inside a 15GB redundant scratch directory deleted during
+# a home-directory cleanup audit. This script IS run from the real
+# repo -- use its own docs/ directory directly.
+DOCS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "docs")
 DIAG = os.path.join(DOCS, "diagrams")
 
 def svg_embed(name):

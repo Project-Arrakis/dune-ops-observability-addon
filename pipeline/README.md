@@ -35,15 +35,20 @@ git checkout upstream/main -- <broken-file>
 # Manually re-apply your changes
 ```
 
-## Install on New WSL Instance
+## Install on New Machine
 
+<!-- BUG FIX (2026-07-25): this used to reference cloning a
+     yacketrj/dune-docker-addon repo -- that repo never actually
+     existed on GitHub; this was always describing an incorrect setup.
+     The real repo is dune-ops-observability-addon (see Repo Location
+     below); corrected the clone/symlink commands to match. -->
 ```bash
-git clone git@github.com:yacketrj/dune-docker-addon.git ~/dune-docker-addon
-ln -sf ~/dune-docker-addon/pipeline/pre-push-gates ~/.local/bin/pre-push-gates
-ln -sf ~/dune-docker-addon/pipeline/pre-pr-check.sh ~/.local/bin/pre-pr-check.sh
-ln -sf ~/dune-docker-addon/pipeline/deploy-clean.sh ~/.local/bin/deploy-clean.sh
-ln -sf ~/dune-docker-addon/pipeline/restore-stack.sh ~/.local/bin/restore-stack.sh
-ln -sf ~/dune-docker-addon/pipeline/merge-safety.sh ~/.local/bin/merge-safety.sh
+git clone git@github.com:yacketrj/dune-ops-observability-addon.git ~/dune-ops-observability-addon
+ln -sf ~/dune-ops-observability-addon/pipeline/pre-push-gates ~/.local/bin/pre-push-gates
+ln -sf ~/dune-ops-observability-addon/pipeline/pre-pr-check.sh ~/.local/bin/pre-pr-check.sh
+ln -sf ~/dune-ops-observability-addon/pipeline/deploy-clean.sh ~/.local/bin/deploy-clean.sh
+ln -sf ~/dune-ops-observability-addon/pipeline/restore-stack.sh ~/.local/bin/restore-stack.sh
+ln -sf ~/dune-ops-observability-addon/pipeline/merge-safety.sh ~/.local/bin/merge-safety.sh
 ```
 
 ## Repo Location

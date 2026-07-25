@@ -158,7 +158,7 @@ For the addon repository:
 
 Required preflight:
 ```bash
-cd ~/dune-docker-addon/addon-main
+cd ~/dune-ops-observability-addon
 
 git fetch origin --prune
 git switch main

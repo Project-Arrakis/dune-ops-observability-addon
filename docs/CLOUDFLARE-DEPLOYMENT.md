@@ -121,14 +121,14 @@ Addon iframe → window.parent.postMessage() → Console server → Database/API
 ### Step 1: Edit addon files in the addon repo
 
 ```bash
-cd /home/darkdante/dune-docker-addon/addon-main/web/
+cd /home/darkdante/dune-ops-observability-addon/web/
 # Edit index.html, addon.js, data-providers.js, etc.
 ```
 
 ### Step 2: Copy to installed addon directory
 
 ```bash
-cp /home/darkdante/dune-docker-addon/addon-main/web/* \
+cp /home/darkdante/dune-ops-observability-addon/web/* \
    /home/darkdante/dune-awakening-selfhost-docker/runtime/addons/installed/dune-ops-observability/web/
 ```
 
@@ -150,7 +150,7 @@ sleep 3
 
 The `scripts/validate-and-install-local-console.sh` script automates this:
 ```bash
-cd /home/darkdante/dune-docker-addon/addon-main
+cd /home/darkdante/dune-ops-observability-addon
 bash scripts/validate-and-install-local-console.sh
 ```
 

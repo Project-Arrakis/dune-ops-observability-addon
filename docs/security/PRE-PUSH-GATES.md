@@ -31,8 +31,8 @@ If any gate fails, the push is blocked. Review the failure output, fix the issue
 
 The pre-push script lives at `~/.local/bin/pre-push-gates` and is symlinked into all three repositories:
 - `dune-awakening-selfhost-docker/.git/hooks/pre-push`
-- `dune-docker-addon/addon-main/.git/hooks/pre-push`
-- `dune-docker-addon/dune-docker-addons/.git/hooks/pre-push`
+- `dune-ops-observability-addon/.git/hooks/pre-push`
+- `dune-docker-addons/.git/hooks/pre-push`
 
 This ensures consistent enforcement across the entire project.
 

@@ -50,14 +50,23 @@ These scripts manage clean Dune: Awakening self-hosted Docker deployments for te
 
 ## Directory Structure
 
-Scripts expect this workspace layout:
+<!-- BUG FIX (2026-07-25): this used to describe a workspace layout
+     rooted at ~/dune-docker-addon (a 15GB redundant scratch directory
+     deleted during a home-directory cleanup audit). deploy-lib.sh's
+     ADDON now defaults to $HOME instead, but the e2e-clean/ and
+     e2e-integration/ directories below have not been re-created since
+     -- this workflow needs that workspace rebuilt under $HOME (or
+     ADDON pointed at wherever you rebuild it) before it can run
+     end-to-end again. -->
+
+Scripts expect this workspace layout (rooted at `$ADDON`, defaulting to `$HOME`):
 ```
-dune-docker-addon/
-├── addon-main/              # This repository
+$ADDON/                      # defaults to $HOME
+├── dune-ops-observability-addon/  # This repository
 │   └── scripts/deploy/      # These scripts
-├── e2e-clean/               # Clean deployment workspace (created by scripts)
-├── e2e-integration/         # RBAC stack (production-like environment)
-└── dune-awakening-selfhost-docker/  # Upstream fork
+├── e2e-clean/               # Clean deployment workspace (created by scripts) -- NOT currently present, needs recreating
+├── e2e-integration/         # RBAC stack (production-like environment) -- NOT currently present, needs recreating
+└── dune-awakening-selfhost-docker/  # Upstream fork (already exists at $HOME/dune-awakening-selfhost-docker)
 ```
 
 ## Troubleshooting

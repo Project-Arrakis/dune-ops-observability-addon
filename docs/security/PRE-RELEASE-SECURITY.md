@@ -56,7 +56,7 @@ If any check fails:
 ## Script location
 
 The pre-release scan script is maintained in both repositories:
-- `dune-docker-addon/addon-main/scripts/pre-release-security.sh` (addon)
+- `dune-ops-observability-addon/scripts/pre-release-security.sh` (addon)
 - `dune-awakening-selfhost-docker/scripts/pre-release-security.sh` (core)
 
 Both are identical — the script auto-detects which checks are applicable based on what files exist (e.g., `console/api/package-lock.json` for npm audit).

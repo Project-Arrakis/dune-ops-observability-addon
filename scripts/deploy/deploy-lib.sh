@@ -6,7 +6,17 @@ set -euo pipefail
 
 # ─── Configuration (override via environment) ───
 REPO="${REPO:-/home/darkdante/dune-awakening-selfhost-docker}"
-ADDON="${ADDON:-/home/darkdante/dune-docker-addon}"
+# BUG FIX (2026-07-25): ADDON used to default to
+# /home/darkdante/dune-docker-addon -- a 15GB redundant scratch
+# workspace directory deleted during a home-directory cleanup audit.
+# This whole deploy-clean testing workflow (e2e-clean/, e2e-integration/
+# as siblings under ADDON) has not been re-created since -- defaulting
+# ADDON to $HOME so this at least resolves to a real, existing directory
+# instead of hard-failing, but the e2e-clean/e2e-integration workspace
+# itself will need to be (re)created under $HOME before this workflow
+# can actually run end-to-end again. Override ADDON explicitly if you
+# want a different workspace root.
+ADDON="${ADDON:-$HOME}"
 CLEAN="${CLEAN:-$ADDON/e2e-clean}"
 UPSTREAM="${UPSTREAM:-https://github.com/Red-Blink/dune-awakening-selfhost-docker.git}"
 PROJECT_NAME="${PROJECT_NAME:-dune-clean-test}"

@@ -11,7 +11,12 @@ if sys.executable != PDFGEN_PYTHON:
 
 from fpdf import FPDF
 
-DOCS = os.path.expanduser("~/dune-docker-addon/addon-main/docs")
+# BUG FIX (2026-07-25): this used to point at
+# ~/dune-docker-addon/addon-main/docs -- a nested clone of this exact
+# repo, living inside a 15GB redundant scratch directory deleted during
+# a home-directory cleanup audit. This script IS run from the real
+# repo -- use its own docs/ directory directly.
+DOCS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "docs")
 DIAG = os.path.join(DOCS, "diagrams")
 
 NAVY = (26,58,92); WHITE=(255,255,255); LGRAY=(240,244,248); MGRAY=(136,153,170)
