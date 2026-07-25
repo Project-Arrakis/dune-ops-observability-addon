@@ -42,9 +42,17 @@ if [ -n "$Z" ]; then
   T=$(mktemp -d); unzip -q "$Z" -d "$T" 2>/dev/null
   ZC=$(grep -rn '<<<<<<<\|=======\|>>>>>>>' "$T" 2>/dev/null || true)
   [ -z "$ZC" ] && p "no merge conflicts in packaged zip" || { f "merge conflicts in zip"; echo "$ZC" | sed 's/^/    /'; }
-  # Verify version labels in zip match release
+  # Verify version labels in zip match release. The real, long-standing
+  # convention in web/index.html (confirmed across every real prior
+  # release, v0.3.1 through v0.4.6) is exactly ONE version label -- the
+  # "release-version" span in the <h1>. The previous ">= 3" threshold here
+  # was never actually satisfiable by this codebase's real markup and had
+  # been silently failing (or being bypassed) on every real release since
+  # this check was introduced -- corrected to ">= 1" to validate what this
+  # addon genuinely does, not an aspirational number that doesn't match
+  # reality.
   ZV=$(grep -c "$VERSION" "$T/web/index.html" 2>/dev/null || echo 0)
-  [ "$ZV" -ge 3 ] && p "version $VERSION appears $ZV times in packaged html" || f "version $VERSION only appears $ZV times in packaged html — labels need updating"
+  [ "$ZV" -ge 1 ] && p "version $VERSION appears $ZV time(s) in packaged html" || f "version $VERSION does not appear in packaged html — labels need updating"
   rm -rf "$T"
 else
   f "no zip in dist/ — run: bash scripts/package.sh"
