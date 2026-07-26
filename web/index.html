@@ -102,15 +102,15 @@
     <section class="card">
       <div class="section-heading">
         <div>
-          <p class="eyebrow">Backend services</p>
-          <h2>Service Health Map</h2>
+          <p class="eyebrow">Addon read health</p>
+          <h2>Bridge &amp; Aggregate Status</h2>
         </div>
-        <p class="provider-label">Live · ops.health.* + dune ready</p>
+        <p class="provider-label">Live · ops.health.*</p>
       </div>
-      <p class="section-copy">Status, uptime, and restart count for every backend service this server depends on (database, message queue, game servers, and routing) — a service reporting anything other than healthy is worth investigating before it affects players.</p>
+      <p class="section-copy">Health of this addon's own connection to the console bridge and the player/farm aggregate data it depends on — not a per-service infrastructure map. For individual game-server/database/queue status, use the Console's own service controls.</p>
       <div class="table-wrap">
-        <table aria-label="Service health">
-          <thead><tr><th scope="col">Service</th><th scope="col">Status</th><th scope="col">Uptime</th><th scope="col">Restarts</th></tr></thead>
+        <table aria-label="Bridge and aggregate status">
+          <thead><tr><th scope="col">Component</th><th scope="col">State</th><th scope="col">Detail</th><th scope="col">Detail</th></tr></thead>
           <tbody id="noc-service-body"></tbody>
         </table>
       </div>
