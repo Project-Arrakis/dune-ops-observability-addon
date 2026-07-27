@@ -49,8 +49,24 @@ repos:
         # pass only the staged files restores the fast local-commit tier
         # (full-ruleset, Supply-Chain-aware coverage now runs in CI via
         # .github/workflows/semgrep.yml on every PR/push/schedule instead).
+        #
+        # The `exclude` key below (pre-commit's own file-list filter,
+        # applied BEFORE files are ever passed to semgrep) is required
+        # despite .semgrepignore already listing these two files.
+        # Confirmed via direct testing: semgrep's own --exclude flag and
+        # .semgrepignore are BOTH silently ineffective once a file is also
+        # given as an explicit positional argument (which pre-commit
+        # always does, and which CI's `pre-commit run --all-files` does
+        # for every tracked file) -- only filtering the file list before
+        # it reaches semgrep's argv actually works. Without this,
+        # scrape-augments.js's already-reviewed/accepted
+        # detect-non-literal-regexp finding (real code, not a false
+        # positive, but out of scope per .semgrepignore's own "internal
+        # scraper, not user-facing" rationale) blocks every commit/CI run
+        # that touches any file, not just that scraper.
         entry: semgrep --error --config p/default
         language: system
+        exclude: ^ops-observability/dev-tools/(scrape-augments|scrape-placeables)\.js$
         verbose: false
 
       - id: validate-addon-manifest
