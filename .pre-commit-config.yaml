@@ -39,10 +39,18 @@ repos:
 
       - id: semgrep
         name: semgrep
+        # Deliberately NOT pass_filenames: false / always_run: true (unlike
+        # the trivy hook above, which is a whole-filesystem secret scanner
+        # by design). Those two settings together meant semgrep received
+        # no file arguments on every commit and fell back to scanning all
+        # 286 tracked files regardless of what was staged -- confirmed via
+        # direct timing: ~2-3 minutes full-repo vs. ~15s scoped to one
+        # staged file. Letting pre-commit's default pass_filenames: true
+        # pass only the staged files restores the fast local-commit tier
+        # (full-ruleset, Supply-Chain-aware coverage now runs in CI via
+        # .github/workflows/semgrep.yml on every PR/push/schedule instead).
         entry: semgrep --error --config p/default
         language: system
-        pass_filenames: false
-        always_run: true
         verbose: false
 
       - id: validate-addon-manifest
