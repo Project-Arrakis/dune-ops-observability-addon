@@ -1,0 +1,125 @@
+#!/usr/bin/env node
+// check-version-consistency.js — Phase 4 item 2
+// (docs/prompts/PHASE-4-GOVERNANCE-AUTOMATION.md §2).
+//
+// Two independent checks, deliberately different failure severities:
+//
+// 1. HARD FAILURE: addon.json.version, package.json.version, and
+//    web/index.html's displayed version must all agree with each
+//    other. These should never legitimately disagree -- if they do,
+//    it's always a real bug (a version bump that touched some but not
+//    all three files).
+//
+// 2. INFORMATIONAL ONLY (never fails CI): reports how the three-way
+//    version above compares to the latest REAL release tag (i.e. the
+//    latest tag whose commit is an ancestor of main, via
+//    governance-lib's anti-S-3 ancestor check -- never just the
+//    highest-numbered or most-recently-created tag). Being ahead of
+//    the latest real release is the normal, healthy state during
+//    active development between releases and must not fail CI.
+
+const fs = require('fs');
+const path = require('path');
+const { findLatestRealReleaseTag } = require('./governance-lib.js');
+
+const DEFAULT_REPO_ROOT = path.resolve(__dirname, '..');
+
+function extractVersions(repoRoot = DEFAULT_REPO_ROOT) {
+  const addonJson = JSON.parse(
+    fs.readFileSync(path.join(repoRoot, 'addon.json'), 'utf8')
+  );
+  const packageJson = JSON.parse(
+    fs.readFileSync(path.join(repoRoot, 'package.json'), 'utf8')
+  );
+  const html = fs.readFileSync(
+    path.join(repoRoot, 'web/index.html'),
+    'utf8'
+  );
+  // Matches validate.js's own existing pattern (r?(\d+\.\d+\.\d+)) for
+  // consistency -- both scripts must recognize the same displayed
+  // version format.
+  const htmlMatch = html.match(/r?(\d+\.\d+\.\d+)/);
+
+  return {
+    addonJson: addonJson.version,
+    packageJson: packageJson.version,
+    indexHtml: htmlMatch ? htmlMatch[1] : null,
+  };
+}
+
+function checkMutualConsistency(versions) {
+  const errors = [];
+  if (versions.indexHtml === null) {
+    errors.push('web/index.html has no recognizable version string.');
+    return errors;
+  }
+  const distinct = new Set([
+    versions.addonJson,
+    versions.packageJson,
+    versions.indexHtml,
+  ]);
+  if (distinct.size > 1) {
+    errors.push(
+      'Version mismatch across sources that must always agree:\n' +
+        `  addon.json:    ${versions.addonJson}\n` +
+        `  package.json:  ${versions.packageJson}\n` +
+        `  web/index.html: ${versions.indexHtml}`
+    );
+  }
+  return errors;
+}
+
+function reportAgainstLatestRelease(versions, { mainRef } = {}) {
+  const latest = findLatestRealReleaseTag({ mainRef });
+  if (!latest) {
+    console.log(
+      'INFO: no real (ancestor-of-main) release tag found yet -- skipping latest-release comparison.'
+    );
+    return;
+  }
+  const currentVersion = versions.addonJson;
+  const latestVersion = latest.tag.replace(/^v/, '');
+  if (currentVersion === latestVersion) {
+    console.log(
+      `INFO: current version (${currentVersion}) matches the latest real release (${latest.tag}).`
+    );
+  } else {
+    console.log(
+      `INFO: current version (${currentVersion}) differs from the latest real release ` +
+        `(${latest.tag}, commit ${latest.commit.slice(0, 7)}). This is expected and healthy ` +
+        'during normal development between releases -- not a failure.'
+    );
+  }
+}
+
+function main() {
+  const versions = extractVersions();
+  const errors = checkMutualConsistency(versions);
+
+  if (errors.length > 0) {
+    console.error('FAIL: version consistency check failed.');
+    for (const e of errors) console.error(`\n${e}`);
+    return 1;
+  }
+
+  console.log(
+    `Version consistency check passed: addon.json, package.json, and web/index.html all agree at ${versions.addonJson}.`
+  );
+
+  // Informational only -- never affects the exit code.
+  try {
+    reportAgainstLatestRelease(versions);
+  } catch (err) {
+    console.log(
+      `INFO: could not compare against latest real release (${err.message}) -- not a failure.`
+    );
+  }
+
+  return 0;
+}
+
+if (require.main === module) {
+  process.exit(main());
+}
+
+module.exports = { extractVersions, checkMutualConsistency, reportAgainstLatestRelease };

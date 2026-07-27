@@ -51,12 +51,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          # Full history required: check-version-consistency.js's
+          # ancestor-aware "latest real release" lookup (via
+          # governance-lib.js's findLatestRealReleaseTag) needs
+          # `git merge-base --is-ancestor` against origin/main and
+          # every release tag, which a shallow checkout can't answer.
+          fetch-depth: 0
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '22'
           cache: 'npm'
       - run: npm ci
       - run: node scripts/validate.js
+      - run: node scripts/check-bridge-action-drift.js
+      - run: node scripts/check-version-consistency.js
       - run: npm test
 
   security:

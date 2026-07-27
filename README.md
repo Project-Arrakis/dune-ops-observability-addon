@@ -87,7 +87,7 @@ Current bridge-backed actions (as called by `web/data-providers.js`, verified ag
 
 | Action | Status in Core | Panel |
 |---|---|---|
-| `ops.health.summary` / `.v2` / `.players` / `.farms` | Live | OPS Health |
+| `ops.health.summary.v2` / `.players` / `.farms` | Live | OPS Health |
 | `ops.activity.summary` | Live | Activity |
 | `ops.combat.deaths` | Live | Combat |
 | `ops.resources.summary` | Live | Resources |

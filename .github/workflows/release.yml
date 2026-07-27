@@ -13,9 +13,38 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          # Full history required for the ancestor guard below --
+          # git merge-base --is-ancestor cannot answer "is this tag's
+          # commit reachable from main" from a shallow checkout.
+          fetch-depth: 0
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
+      - name: Refuse to release a tag whose commit is not an ancestor of main
+        # Prevents a repeat of S-3 (docs/security/SECURITY-ARCHITECTURE-GAP-ANALYSIS.md):
+        # git tag vX.Y.Z && git push --tags succeeding even when the
+        # tagged commit was never merged into main, producing a
+        # published release that doesn't correspond to any real point
+        # in the project's actual history.
+        run: |
+          set -euo pipefail
+          # Do not rely on actions/checkout's default fetch behavior
+          # having already populated an up-to-date origin/main ref in
+          # this tag-triggered context (its exact ref-fetching
+          # behavior on a tag push is not something to assume) --
+          # fetch it explicitly so this check has a real, current
+          # target to compare against.
+          git fetch origin main
+          # On a tag push, the checked-out ref IS the tag's commit
+          # (detached HEAD) -- GITHUB_SHA is exactly the commit being
+          # tagged, which is the correct thing to check.
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::Refusing to release: tagged commit $GITHUB_SHA is not an ancestor of main."
+            echo "::error::This is exactly the defect that produced the fabricated v0.5.0-v1.0.0 releases -- see S-3 in docs/SECURITY-ARCHITECTURE-GAP-ANALYSIS.md."
+            exit 1
+          fi
+          echo "OK: $GITHUB_SHA is an ancestor of main -- proceeding with release."
       - name: Install packaging tools
         run: sudo apt-get update && sudo apt-get install -y zip
       - name: Validate addon
