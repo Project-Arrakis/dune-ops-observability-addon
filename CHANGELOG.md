@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- **CI: `npm audit` high-severity `undici` advisory is now resolved.** The
+  transitive `undici@7.28.0` (via devDependency `jsdom`) failed `npm audit
+  --audit-level=moderate` on every push, which cascaded into the CI Gate
+  failing on `main`. Added an `overrides` pin to the patched `undici@7.29.0`
+  (same major, advisory-fixed), leaving the installed dependency tree
+  otherwise unchanged.
+
 ## [0.4.6] - 2026-07-24
 
 ### Removed
