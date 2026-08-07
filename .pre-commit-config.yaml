@@ -52,21 +52,23 @@ repos:
         #
         # The `exclude` key below (pre-commit's own file-list filter,
         # applied BEFORE files are ever passed to semgrep) is required
-        # despite .semgrepignore already listing these two files.
+        # despite .semgrepignore already listing these three files.
         # Confirmed via direct testing: semgrep's own --exclude flag and
         # .semgrepignore are BOTH silently ineffective once a file is also
         # given as an explicit positional argument (which pre-commit
         # always does, and which CI's `pre-commit run --all-files` does
         # for every tracked file) -- only filtering the file list before
-        # it reaches semgrep's argv actually works. Without this,
-        # scrape-augments.js's already-reviewed/accepted
-        # detect-non-literal-regexp finding (real code, not a false
-        # positive, but out of scope per .semgrepignore's own "internal
-        # scraper, not user-facing" rationale) blocks every commit/CI run
-        # that touches any file, not just that scraper.
+        # it reaches semgrep's argv actually works. Without this, each of
+        # these files' already-reviewed/accepted findings (real code, not
+        # false positives, but explicitly out of scope per
+        # .semgrepignore's own stated rationale for each) blocks every
+        # commit/CI run that touches any file, not just these three.
+        # Keep this pattern in sync with .semgrepignore's file list --
+        # confirmed identical as of this commit (2 dev-tools scraper
+        # files + 1 intentional-security-test-pattern fixture).
         entry: semgrep --error --config p/default
         language: system
-        exclude: ^ops-observability/dev-tools/(scrape-augments|scrape-placeables)\.js$
+        exclude: ^(ops-observability/dev-tools/(scrape-augments|scrape-placeables)\.js|tools/cross-repo-security-tests/blueprints-security\.test\.js)$
         verbose: false
 
       - id: validate-addon-manifest
