@@ -26,7 +26,15 @@
       <div>
         <p class="eyebrow">Read-only operations</p>
         <h1>Dune Ops Observability <span class="release-version">r0.4.7</span></h1>
-        <p id="status">Addon loaded.</p>
+        <div id="status-banner" class="status-banner">
+          <span class="status-badge">Initializing</span>
+          <span id="status">Addon loaded.</span>
+          <span id="status-count" class="status-count"></span>
+        </div>
+        <div id="preview-warning" class="status-banner preview" style="display:none">
+          <span class="status-badge">Preview Mode</span>
+          <span>Not connected to live server — data shown is sample/fixture data, not actual server metrics</span>
+        </div>
       </div>
       <button id="refresh-players" type="button">Refresh OPS health</button>
     </section>
@@ -660,6 +668,7 @@
 
     <section class="card diagnostics-card">
       <h2>Diagnostics</h2>
+      <p class="eyebrow data-classification-note">Diagnostic output — may contain raw bridge data. Do not share screenshots of this tab.</p>
       <pre id="output"></pre>
     </section>
 

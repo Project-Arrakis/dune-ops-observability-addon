@@ -101,7 +101,7 @@ yacketrj/dune-ops-observability-addon
 The expected local checkout is:
 
 ```text
-~/dune-work/addon-main
+~/projects/dune/dune-ops-observability-addon
 ```
 
 The canonical branch is:

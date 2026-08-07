@@ -21,7 +21,12 @@ CLEAN="${CLEAN:-$ADDON/e2e-clean}"
 UPSTREAM="${UPSTREAM:-https://github.com/Red-Blink/dune-awakening-selfhost-docker.git}"
 PROJECT_NAME="${PROJECT_NAME:-dune-clean-test}"
 DB_VOLUME="${DB_VOLUME:-dune-postgres-data-clean}"
-SERVER_IP="${SERVER_IP:-50.123.64.61}"
+SERVER_IP="${SERVER_IP:-}"
+if [ -z "$SERVER_IP" ]; then
+  echo "ERROR: SERVER_IP must be set before running this script."
+  echo "Run: export SERVER_IP=<your-server-public-ip>"
+  exit 1
+fi
 DOCKER_GID="${DOCKER_GID:-986}"
 UID_HOST="${UID_HOST:-$(id -u)}"
 GID_HOST="${GID_HOST:-$(id -g)}"
