@@ -1051,7 +1051,19 @@ function renderPrometheus(result) {
     renderUnavailablePanel(result, { noteEl: mtrAvailabilityEl, metricEls: MTR_METRIC_ELS, tableBodyEls: MTR_TABLE_ELS });
     return;
   }
+  // Show prominent call-to-action when metrics stack is not running
+  if (result.data && result.data.status === "planned") {
+    for (const el of MTR_METRIC_ELS) setText(el, null);
+    for (const el of MTR_TABLE_ELS) clearTbody(el);
+    if (mtrAvailabilityEl) {
+      mtrAvailabilityEl.hidden = false;
+      mtrAvailabilityEl.textContent = unavailableMessage(result);
+      mtrAvailabilityEl.classList.add("cta-note");
+    }
+    return;
+  }
   hideAvailabilityNote(mtrAvailabilityEl);
+  if (mtrAvailabilityEl) mtrAvailabilityEl.classList.remove("cta-note");
   const d = result.data || {};
   if (d.healthy === false && d.error) {
     setText(mtrHealthEl, "Unreachable");

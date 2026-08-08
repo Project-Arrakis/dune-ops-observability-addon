@@ -513,6 +513,16 @@ tbody tr:hover {
   font-weight: 300;
 }
 
+/* Call-to-action note (metrics stack not running) — distinct from errors */
+.cta-note {
+  border-color: var(--border-accent) !important;
+  border-left-color: var(--faction-color) !important;
+  color: var(--faction-accent) !important;
+  background: var(--faction-bg) !important;
+  font-weight: 600;
+}
+.cta-note::before { content: "⚡" !important; }
+
 .availability-note {
   border: 1px solid rgba(200, 150, 62, 0.25);
   border-left: 3px solid var(--status-degraded);
