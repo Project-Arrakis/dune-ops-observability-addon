@@ -541,7 +541,7 @@
         </div>
         <p class="provider-label">Live · ops.inventory.summary</p>
       </div>
-      <p class="section-copy">Total items and storage containers in use, broken down by item template, plus per-container storage load. "Total Crafted" has no real data source in this game version and always shows as unavailable — never a fabricated count.</p>
+      <p class="section-copy">Total items and storage containers in use, broken down by item template, plus per-container storage load. Template IDs are game-internal identifiers (item-name lookup requires Core-side enrichment — planned for Core R3). "Total Crafted" has no real data source in this game version and always shows as unavailable.</p>
       <div id="inv-availability-note" class="availability-note" hidden></div>
       <div class="summary-grid" aria-label="Inventory metrics">
         <article class="metric-card">
@@ -556,7 +556,12 @@
           <span class="metric-label">Total Crafted</span>
           <strong id="inv-crafted" title="This metric has no real data source in the game database schema. It is intentionally always unavailable.">0</strong>
         </article>
+        <article class="metric-card">
+          <span class="metric-label">Storage Used</span>
+          <strong id="inv-storage-used">—</strong>
+        </article>
       </div>
+      <div id="inv-empty-state" class="empty-state" hidden>No item template or storage data is available from the inventory bridge.</div>
       <div class="table-wrap">
         <table aria-label="Items by template">
           <thead><tr><th scope="col">Template ID</th><th scope="col">Count</th><th scope="col">Stack Size</th></tr></thead>

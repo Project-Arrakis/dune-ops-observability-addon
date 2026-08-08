@@ -271,8 +271,10 @@ const ecoAvailabilityEl = document.querySelector("#eco-availability-note");
 const invItemsEl = document.querySelector("#inv-items");
 const invInvsEl = document.querySelector("#inv-invs");
 const invCraftedEl = document.querySelector("#inv-crafted");
+const invStorageUsedEl = document.querySelector("#inv-storage-used");
 const invTemplateBodyEl = document.querySelector("#inv-template-body");
 const invStorageBodyEl = document.querySelector("#inv-storage-body");
+const invEmptyStateEl = document.querySelector("#inv-empty-state");
 const invAvailabilityEl = document.querySelector("#inv-availability-note");
 
 const locMapCountEl = document.querySelector("#loc-map-count");
@@ -1155,35 +1157,43 @@ function renderEconomy(result) {
   }
 }
 
-const INV_METRIC_ELS = [invItemsEl, invInvsEl, invCraftedEl];
+const INV_METRIC_ELS = [invItemsEl, invInvsEl, invCraftedEl, invStorageUsedEl];
 const INV_TABLE_ELS = [invTemplateBodyEl, invStorageBodyEl];
 
 function renderInventory(result) {
   if (!result || result.status === "unavailable") {
     renderUnavailablePanel(result, { noteEl: invAvailabilityEl, metricEls: INV_METRIC_ELS, tableBodyEls: INV_TABLE_ELS });
+    if (invEmptyStateEl) invEmptyStateEl.hidden = true;
     return;
   }
   hideAvailabilityNote(invAvailabilityEl);
   const d = result.data || {};
   setText(invItemsEl, d.totalItems ?? 0);
   setText(invInvsEl, d.totalInventories ?? 0);
-  // totalCrafted has no real data source anywhere in Core's schema
-  // (verified: duneDb.js's addonOpsInventorySummary always returns
-  // totalCrafted: null, explicitly, by design -- never estimated) --
-  // `?? 0` here rendered a false, fabricated-looking zero for a field
-  // that is genuinely unavailable, not genuinely zero. setText() itself
-  // already renders null/undefined as a dash, so passing the real
-  // value through directly (not coalesced to 0) is the fix.
   setText(invCraftedEl, d.totalCrafted);
+  setText(invStorageUsedEl, d.totalStorageUsed ?? "—");  // may be absent in current Core
+
+  const hasTemplateData = d.itemsByTemplate && d.itemsByTemplate.length > 0;
+  const hasStorageData = d.storageUsage && d.storageUsage.length > 0;
+  var hasAnyData = hasTemplateData || hasStorageData;
 
   clearTbody(invTemplateBodyEl);
-  for (const i of d.itemsByTemplate || []) {
-    appendRow(invTemplateBodyEl, [i.templateId || "Unknown", i.count ?? 0, i.totalStack ?? 0]);
+  if (hasTemplateData) {
+    for (const i of d.itemsByTemplate) {
+      appendRow(invTemplateBodyEl, [i.templateId || "Unknown", i.count ?? 0, i.totalStack ?? 0]);
+    }
   }
 
   clearTbody(invStorageBodyEl);
-  for (const s of d.storageUsage || []) {
-    appendRow(invStorageBodyEl, [s.inventoryId || "Unknown", s.itemCount ?? 0, s.totalStack ?? 0]);
+  if (hasStorageData) {
+    for (const s of d.storageUsage) {
+      appendRow(invStorageBodyEl, [s.inventoryId || "Unknown", s.itemCount ?? 0, s.totalStack ?? 0]);
+    }
+  }
+
+  if (invEmptyStateEl) {
+    invEmptyStateEl.hidden = hasAnyData;
+    invEmptyStateEl.textContent = hasAnyData ? "" : "Inventory and storage detail is not available. The bridge returned aggregate totals but no per-template or per-container breakdown. This is expected when the game server has not yet populated item data.";
   }
 }
 
