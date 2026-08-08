@@ -1,66 +1,76 @@
-# Addon Improvement Prompts — Master Index
+# Metrics & Monitoring Prompts — Master Index
 
 Generated 2026-08-07 from the eight-hats review + AAA/NOC/SOC gap analysis.
+Updated 2026-08-07 with Grafana, Alertmanager, Bot Alerts, Console Exporter.
 
-## Execution Order
+## Core Work: ⏳ PAUSED per operator directive (2026-08-07)
 
-1. **PROMPT-01-ARCHITECTURE-FIXES.md** (3-4h) — H-1, M-1, M-5, M-7
-   - Ops health partial results, preview mode warning, data-driven config,
-     pre-commit drift check
+Prompts requiring Core changes (04, 05, 06, 11) are deferred until Core work resumes.
+Prompts 07-10 can execute now — they are addon/bot/infrastructure only.
 
-2. **PROMPT-02-SECURITY-FIXES.md** (1-2h) — M-2, M-6, L-6
-   - Remove hardcoded IP, scope gitleaks allowlist, Diag tab data warning
+## Execution Priority (What You Can Ship Today)
 
-3. **PROMPT-03-GRC-FIXES.md** (1-2h) — H-2, M-3, M-4, L-9
-   - Enable branch protection, compliance scaffolding, release evidence,
-     stale paths
+| Priority | Prompt | Domain | Estimate | Core Changes |
+|---|---|---|---|---|
+| **1** | 07-GRAFANA | NOC/SOC Dashboards | 4-6h | None |
+| **2** | 08-ALERTMANAGER | Alert Routing → Discord | 2-3h | None |
+| **3** | 10-BOT-ALERTS | Bot Health Checks + /dune ops alerts | 3-4h | None |
+| **4** | 09-ADDON-NOC-SOC | Addon UI Improvements | 3-5h | None |
+| **5** | 01-ARCHITECTURE-FIXES | Addon partial results + config | 3-4h | None |
+| **6** | 02-SECURITY-FIXES | Deploy script + gitleaks | 1-2h | None |
+| **7** | 03-GRC-FIXES | Branch protection + docs | 1-2h | None |
 
-4. **PROMPT-04-AAA-METRICS.md** (8-12h) — G-1 through G-11
-   - Retention cohorts, session duration, progression funnel, economy
-     health, player engagement, combat balance, map heat maps, guild health
+## Deferred (Requires Core Changes)
 
-5. **PROMPT-05-NOC-METRICS.md** (6-10h) — N-1 through N-10
-   - Server tick rate, per-service RED metrics, host resources without
-     Prometheus, service health map, DB health
-
-6. **PROMPT-06-SOC-METRICS.md** (8-12h) — S-1 through S-10
-   - Auth failure monitoring, admin audit trail, CSP violation reporting,
-     permission drift, rate limit telemetry, suspicious behavior
-
-## Total Estimate: 27-42 hours
-
-## Dependency Map
-
-```
-Prompt 01 (Architecture) ──┐
-Prompt 02 (Security)     ──┼── Independent — can run in parallel
-Prompt 03 (GRC)          ──┘
-
-Prompt 04 (AAA Metrics)  ──┐
-Prompt 05 (NOC Metrics)  ──┼── Independent — can run in parallel
-Prompt 06 (SOC Metrics)  ──┘   (each writes different Core bridge actions
-                                and different addon panels)
-
-Prompts 01-03 should complete before 04-06 because 04-06 add new panels
-that need the data-driven PANEL_CONFIG refactor from Prompt 01.
-```
-
-## Repository Scope Per Prompt
-
-| Prompt | dune-ops-observability-addon | dune-awakening-selfhost-docker |
+| Prompt | Domain | Estimate |
 |---|---|---|
-| 01 (Architecture) | ✅ All changes | — |
-| 02 (Security) | ✅ All changes | — |
-| 03 (GRC) | ✅ All changes | — |
-| 04 (AAA) | ✅ Provider + renderer | ✅ Bridge actions + DB queries |
-| 05 (NOC) | ✅ Provider + renderer | ✅ Bridge actions + host metrics |
-| 06 (SOC) | ✅ Provider + renderer | ✅ Bridge actions + audit log |
+| 11-CONSOLE-EXPORTER | Game Metrics → Prometheus | 4-6h |
+| 04-AAA-METRICS | Player retention, progression, economy health | 8-12h |
+| 05-NOC-METRICS | Tick rate, RED metrics, host resources | 6-10h |
+| 06-SOC-METRICS | Auth failures, audit trail, CSP reports | 8-12h |
 
-## Reference Documents
+## What Each Prompt Delivers
 
-- Eight-hats findings register: `compliance/eight-hats-findings-register.md`
-- AAA/NOC/SOC gap analysis: same file, sections at bottom
-- Release standard: `ops-observability/roadmap/release-standard.md`
-- Metric classification standard: `ops-observability/roadmap/metric-classification-standard.md`
-- Security architecture gap analysis: `docs/SECURITY-ARCHITECTURE-GAP-ANALYSIS.md`
-- Database event inventory: `docs/DATABASE-EVENT-INVENTORY.md`
+### 07 — Grafana (4-6h, no Core changes)
+3 auto-provisioned dashboards: Game Server Health (NOC), Infrastructure (SOC),
+Player & Economy (AAA GameOps). Separate service in docker-compose.metrics.yml.
+Behind Cloudflare Tunnel + Access at grafana.darkdante.org.
+
+### 08 — Alertmanager (2-3h, no Core changes)
+Routes all 22 existing Prometheus alerts to Discord via the ACP bot's relay
+endpoint. Alertmanager → bot Express server → Discord webhook. Resolved alerts
+send follow-up messages.
+
+### 10 — Bot Alerts (3-4h, no Core changes)
+5 new health checks (population zero, spice depleted, DB health, bridge errors,
+population spike). `/dune ops alerts` slash command. Daily digest message.
+
+### 09 — Addon NOC/SOC (3-5h, no Core changes)
+Service health table in NOC Overview. Actionable "run dune metrics start" prompt.
+Freshness badges on every panel. Section copy for all tabs. Known-gap tooltips.
+
+### 11 — Console Exporter (4-6h, ⏳ deferred)
+Exposes game metrics (players, combat, spice, economy, bridge) as Prometheus
+gauge metrics at `/metrics`. New Prometheus scrape job. Fills empty dune-stack
+alert rules group with 4 game-level alerts.
+
+### 01-03 — Architecture/Security/GRC (5-8h total, addon-only)
+Fixes from the eight-hats review: ops health partial results, preview mode
+warning, data-driven PANEL_CONFIG, hardcoded IP removal, gitleaks scoping,
+branch protection, compliance docs.
+
+## Total Available Now: 16-24 hours (no Core changes)
+## Total With Core: 33-55 hours
+
+## Dependency Map (Simplified)
+
+```
+07 (Grafana) ──┐
+08 (Alerts)  ──┼── Independent, ship in any order
+10 (Bot)     ──┤
+09 (Addon)   ──┤
+01-03        ──┘
+
+11 (Exporter) ── Needs 07 (Grafana dashboards reference game metrics)
+04-06          ── Need 11 (exporter exposes data they visualize)
+```
