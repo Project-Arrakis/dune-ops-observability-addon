@@ -154,13 +154,16 @@ function _renderTabData(tabName, results) {
   // Detect if the page is loaded over HTTPS. If so, Grafana's plain-HTTP
   // iframes won't load (browser blocks mixed content). Show an honest
   // message instead of silently broken iframes.
-  var isHttps = window.location.protocol === "https:" ||
-    (window.parent !== window && window.parent.location.protocol === "https:");
+  var isHttps = window.location.protocol === "https:";
+  if (!isHttps && window.parent !== window) {
+    try { isHttps = window.parent.location.protocol === "https:"; } catch (e) { /* cross-origin — assume same */ }
+  }
   var grafanaTab = document.querySelector('.tab-content[data-tab="grafana"]');
   var mixedContentNote = document.getElementById("grafana-mixed-content-note");
 
-  if (isHttps && mixedContentNote) {
-    mixedContentNote.hidden = false;
+  if (isHttps) {
+    // Can't embed HTTP Grafana in an HTTPS page — show explanation instead
+    if (mixedContentNote) mixedContentNote.hidden = false;
     frames.forEach(function (f) { f.hidden = true; });
     if (grafanaTab) {
       var cards = grafanaTab.querySelectorAll(".grafana-embed-card");
@@ -169,8 +172,13 @@ function _renderTabData(tabName, results) {
     return;
   }
 
-  // Show iframes, hide the note
+  // HTTP page — set iframe src from data-src (never set in HTML to avoid
+  // the browser firing mixed-content prompts before JS can intercept)
   if (mixedContentNote) mixedContentNote.hidden = true;
+  frames.forEach(function (f) {
+    var ds = f.getAttribute("data-src");
+    if (ds) { f.src = ds; f.removeAttribute("data-src"); }
+  });
 
   var updateRange = function (range) {
     var fromMap = { "1h": "now-1h", "6h": "now-6h", "24h": "now-24h", "7d": "now-7d", "30d": "now-30d", "90d": "now-90d", "6M": "now-6M", "1y": "now-1y" };
