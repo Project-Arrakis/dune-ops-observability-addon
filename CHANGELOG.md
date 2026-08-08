@@ -7,7 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (2026-08-08)
+- **L1 Design Audit — AAA/NOC/SOC metrics architecture.** 31 metric gaps
+  documented across AAA (11), NOC (10), SOC (10). 14-tab architecture designed
+  with 3 new tabs (AAA/Auth, NOC Infra, Audit Log). Tab-aware lazy loading
+  with 60s cache. Phase plan: 6 phases over ~8 weeks. DBA: 3 new Postgres
+  tables, 6 partial indexes, additive only. See `docs/design/metrics-l1-design-audit-2026-08-08.md`.
+- **Phase 0: Tab-aware lazy loading.** `refreshAll()` restructured so the
+  active tab dispatches only its providers (2-5 calls vs all 9). 60s in-memory
+  cache per source. `_tabCache` Map + `_tabProviders` config. Backward-compatible —
+  initial load still populates all tabs.
+- **Placeholder tabs** (AAA, NOC Infra, Audit Log) with design-document links
+  and "Requires Core R3" copy. Cool-blue accent styling for infra tabs distinct
+  from amber game-operational tabs.
+- **NOC Overview system service health table** (PROMPT-09). Split into System
+  Services (Prometheus-fed: 6 targets) + Bridge & Data Sources. CTA message
+  when metrics stack isn't running.
+- **Live NOC resource gauges.** CPU/Memory/Disk/Uptime wired from Prometheus
+  bridge data when metrics stack is running. Falls back to "—" when unavailable.
+- **Freshness badges** on every panel header. Green (<60s), amber (<5m), red (>5m).
+  `updateFreshnessBadges()` call at end of each refresh cycle.
+- **Known-gap tooltips** on PvP Deaths, Total Crafted, Restarts (24h) metrics.
+- **Preview mode warning** wired to show/hide based on active provider.
+- **Bridge-action drift check** added to pre-commit hooks.
+
 ### Changed
+- All 57 tests pass. No regressions.
 - **Complete in-game Dune Awakening aesthetic redesign (v0.5).** Sand-toned
   elevation surface system, warm amber/bronze default palette (replacing purple),
   game-style tab navigation with accent underlines, metric card glow effects,

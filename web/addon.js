@@ -9,6 +9,126 @@ const buttonEl = document.querySelector("#refresh-players");
   } catch (e) {}
 })();
 
+// ── Tab-aware lazy loading (Phase 0, Requirement 20 L1 design) ──
+// Maps each tab to its required provider methods. When a tab is activated
+// for the first time, or its cached data is older than TAB_CACHE_TTL_MS,
+// only that tab's providers are dispatched — not all 9 at once.
+var TAB_CACHE_TTL_MS = 60000;
+var _tabCache = new Map();
+var _tabProviders = {
+  overview: ["opsHealth", "prometheus"],
+  players:  ["opsHealth"],
+  activity: ["activity"],
+  combat:   ["combat"],
+  spice:    ["resources"],
+  economy:  ["economy"],
+  inventory:["inventory"],
+  location: ["location"],
+  soc:      ["soc", "prometheus"],
+  grafana:  [],
+  diag:     [],
+  // Phase 0 placeholder tabs — will dispatch real providers when Core R3 lands
+  aaa:      [],
+  "noc-infra": [],
+  audit:    []
+};
+
+// Returns the provider method name for a given source key
+function _providerMethod(source) {
+  var map = {
+    opsHealth: "getOpsHealth",
+    activity: "getActivity",
+    combat: "getCombat",
+    resources: "getResources",
+    economy: "getEconomy",
+    inventory: "getInventory",
+    location: "getLocation",
+    soc: "getSoc",
+    prometheus: "getPrometheusHealth"
+  };
+  return map[source];
+}
+
+// Refreshes just the providers needed for a given tab. Uses cached results
+// if available and fresh; otherwise dispatches only that tab's providers.
+async function _refreshTab(tabName) {
+  if (!provider) { // provider set by refreshAll() on first load
+    try { provider = getProvider(); } catch (e) { return; }
+  }
+
+  var sources = _tabProviders[tabName] || [];
+  if (!sources.length) return;
+
+  var now = Date.now();
+  var results = [];
+
+  for (var i = 0; i < sources.length; i++) {
+    var source = sources[i];
+    var cached = _tabCache.get(source);
+    if (cached && (now - cached.at < TAB_CACHE_TTL_MS)) {
+      results.push(cached.result);
+      continue;
+    }
+    var method = _providerMethod(source);
+    if (!method || !provider[method]) {
+      results.push(window.DuneOpsProviders.unavailableResult("request_failed", null));
+      continue;
+    }
+    try {
+      var result = await provider[method]();
+      _tabCache.set(source, { result: result, at: now });
+      results.push(result);
+    } catch (e) {
+      var unavailable = window.DuneOpsProviders.unavailableResult("request_failed", null);
+      _tabCache.set(source, { result: unavailable, at: now });
+      results.push(unavailable);
+    }
+  }
+
+  _renderTabData(tabName, results);
+}
+
+// Routes tab-specific data to the correct render functions
+function _renderTabData(tabName, results) {
+  var get = function (source) {
+    var idx = (_tabProviders[tabName] || []).indexOf(source);
+    return idx >= 0 ? results[idx] : null;
+  };
+
+  switch (tabName) {
+    case "overview":
+      var opsHealth = get("opsHealth");
+      var prom = get("prometheus");
+      if (opsHealth) {
+        var snap = normalizeOpsHealth(opsHealth);
+        renderOpsAggregate(snap, new Date());
+        renderNocService(provider, snap, new Date(), prom);
+        renderNocResources(snap, prom);
+      }
+      if (prom) renderPrometheus(prom);
+      break;
+    case "players":
+      var oh = get("opsHealth");
+      if (oh) {
+        var s = normalizeOpsHealth(oh);
+        renderOpsAggregate(s, new Date());
+      }
+      break;
+    case "activity":  renderActivity(get("activity")); break;
+    case "combat":    renderCombat(get("combat")); break;
+    case "spice":     renderResources(get("resources")); break;
+    case "economy":   renderEconomy(get("economy")); break;
+    case "inventory": renderInventory(get("inventory")); break;
+    case "location":  renderLocation(get("location")); break;
+    case "soc":
+      var socData = get("soc");
+      var promData = get("prometheus");
+      if (socData) renderSoc(socData);
+      if (promData) renderPrometheus(promData);
+      break;
+  }
+}
+
 (function initTabs() {
   var tabs = document.querySelectorAll("#tab-nav .tab");
   var panels = document.querySelectorAll(".tab-content");
@@ -19,6 +139,7 @@ const buttonEl = document.querySelector("#refresh-players");
       panels.forEach(function (p) { p.classList.remove("active"); });
       var target = document.querySelector('.tab-content[data-tab="' + tab.dataset.tab + '"]');
       if (target) target.classList.add("active");
+      _refreshTab(tab.dataset.tab);
     });
   });
 })();

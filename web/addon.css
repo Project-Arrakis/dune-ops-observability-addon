@@ -669,6 +669,19 @@ pre { overflow: auto; white-space: pre-wrap; font-size: var(--font-size-xs); }
   border-bottom-color: var(--spice);
 }
 
+/* Infra tabs — cool-blue accent for security/infrastructure (distinct from amber game tabs) */
+.tab-nav .tab.infra-tab {
+  color: #7ea8d4;
+}
+.tab-nav .tab.infra-tab:hover {
+  color: #93c5fd;
+  border-bottom-color: #3b82f6;
+}
+.tab-nav .tab.infra-tab.active {
+  color: #93c5fd;
+  border-bottom-color: #3b82f6;
+}
+
 .tab-content {
   display: none;
   gap: 14px;

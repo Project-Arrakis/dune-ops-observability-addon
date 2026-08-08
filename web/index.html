@@ -49,6 +49,9 @@
       <button class="tab" data-tab="inventory">Inventory</button>
       <button class="tab" data-tab="location">Location</button>
       <button class="tab" data-tab="soc">SOC</button>
+      <button class="tab infra-tab" data-tab="aaa" title="Requires Core R3 — Authentication & Authorization metrics">AAA</button>
+      <button class="tab infra-tab" data-tab="noc-infra" title="Requires Core R3 — Infrastructure deep-dive metrics">NOC Infra</button>
+      <button class="tab infra-tab" data-tab="audit" title="Requires Core R3 — Audit & compliance log">Audit</button>
       <button class="tab" data-tab="grafana">Grafana</button>
       <button class="tab" data-tab="diag">Diag</button>
     </nav>
@@ -683,6 +686,51 @@
     </section>
 
     </div><!-- /tab:soc -->
+
+    <!-- TAB: AAA (Phase 0 placeholder — requires Core R3) -->
+    <div class="tab-content" data-tab="aaa">
+      <section class="card">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Authentication &amp; Authorization</p>
+            <h2>AAA / Auth</h2>
+          </div>
+          <p class="provider-label">Planned · Core R3 required</p>
+        </div>
+        <p class="section-copy">Steam OAuth flow health, token lifecycle, session distribution, auth failure heatmaps, and privilege escalation tracking. This tab is designed and planned — it will populate when Core Release 3 adds the <code>ops.aaa.summary</code> and <code>ops.aaa.detail</code> bridge actions. See <code>docs/design/metrics-l1-design-audit-2026-08-08.md</code> for the full design.</p>
+        <div class="availability-note" style="border-left-color:var(--faction-color)">Planned — requires Core R3 metrics query bridge. Tracked as Phase 4 of the AAA/NOC/SOC metrics architecture.</div>
+      </section>
+    </div><!-- /tab:aaa -->
+
+    <!-- TAB: NOC Infra (Phase 0 placeholder — requires Core R3) -->
+    <div class="tab-content" data-tab="noc-infra">
+      <section class="card">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Infrastructure Deep-Dive</p>
+            <h2>NOC Infrastructure</h2>
+          </div>
+          <p class="provider-label">Planned · Core R3 required</p>
+        </div>
+        <p class="section-copy">Live CPU/memory/disk gauges (Prometheus-fed via Core R3 <code>metrics.query</code>), container resource ranking, RabbitMQ queue depth, Postgres connection pool health, network throughput, Docker daemon health, and filesystem inode usage. Designed and planned — populates when Core R3 ships. See <code>docs/design/metrics-l1-design-audit-2026-08-08.md</code> for the full design.</p>
+        <div class="availability-note" style="border-left-color:var(--faction-color)">Planned — requires Core R3 metrics query bridge. Current Prometheus data is available in the Grafana tab. Tracked as Phase 3 of the AAA/NOC/SOC metrics architecture.</div>
+      </section>
+    </div><!-- /tab:noc-infra -->
+
+    <!-- TAB: Audit Log (Phase 0 placeholder — requires Core R3) -->
+    <div class="tab-content" data-tab="audit">
+      <section class="card">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Compliance &amp; Change History</p>
+            <h2>Audit Log</h2>
+          </div>
+          <p class="provider-label">Planned · Core R3 required</p>
+        </div>
+        <p class="section-copy">Admin command trail, config change history (with diffs), addon install/uninstall lifecycle, permission grant/revoke timeline, security scan results (trivy/semgrep/gitleaks), incident timeline, token rotation log, and backup verification status. Designed and planned — populates when Core R3 adds the <code>ops.audit.log</code> bridge action and the <code>audit_log</code> Postgres table. See <code>docs/design/metrics-l1-design-audit-2026-08-08.md</code> for the full design.</p>
+        <div class="availability-note" style="border-left-color:var(--faction-color)">Planned — requires Core R3 audit log schema + bridge action. Tracked as Phase 5 of the AAA/NOC/SOC metrics architecture.</div>
+      </section>
+    </div><!-- /tab:audit -->
 
     <!-- TAB: Grafana (time-series dashboards — requires Grafana at localhost:3000) -->
     <div class="tab-content" data-tab="grafana">
