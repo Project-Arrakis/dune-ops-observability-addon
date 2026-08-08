@@ -22,6 +22,25 @@ const buttonEl = document.querySelector("#refresh-players");
     });
   });
 })();
+
+// ── Grafana tab: time-range selector ──
+(function initGrafanaTimeRange() {
+  var rangeBtns = document.querySelectorAll(".grafana-time-btn");
+  if (!rangeBtns.length) return;
+  var frames = document.querySelectorAll(".grafana-frame");
+  var updateRange = function (range) {
+    var fromMap = { "1h": "now-1h", "6h": "now-6h", "24h": "now-24h", "7d": "now-7d", "30d": "now-30d", "90d": "now-90d", "6M": "now-6M", "1y": "now-1y" };
+    var from = fromMap[range] || "now-1h";
+    rangeBtns.forEach(function (b) { b.classList.remove("active"); });
+    event.target.classList.add("active");
+    frames.forEach(function (f) {
+      f.src = f.src.replace(/from=[^&]+/, "from=" + from);
+    });
+  };
+  rangeBtns.forEach(function (btn) {
+    btn.addEventListener("click", function () { updateRange(btn.dataset.range); });
+  });
+})();
 const playersBodyEl = document.querySelector("#players-body");
 const providerLabelEl = document.querySelector("#provider-label");
 const emptyStateEl = document.querySelector("#empty-state");

@@ -950,3 +950,59 @@ pre { overflow: auto; white-space: pre-wrap; font-size: var(--font-size-xs); }
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Grafana Tab ── */
+.grafana-time-range-bar {
+  display: flex;
+  gap: 4px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.grafana-time-btn {
+  padding: 4px 12px;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-1);
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  box-shadow: none;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.grafana-time-btn:hover {
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  border-color: var(--border-default);
+  transform: none;
+}
+
+.grafana-time-btn.active {
+  background: var(--faction-color);
+  color: #11100e;
+  border-color: var(--faction-color);
+  font-weight: 700;
+}
+
+.grafana-embed-card {
+  padding: 12px 14px !important;
+  margin-top: 12px;
+}
+
+.grafana-embed-card .section-heading {
+  margin-bottom: 8px;
+}
+
+.grafana-embed-card h3 {
+  font-size: var(--font-size-md);
+}
+
+.grafana-frame {
+  width: 100%;
+  height: 420px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--surface-0);
+}

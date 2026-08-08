@@ -49,6 +49,7 @@
       <button class="tab" data-tab="inventory">Inventory</button>
       <button class="tab" data-tab="location">Location</button>
       <button class="tab" data-tab="soc">SOC</button>
+      <button class="tab" data-tab="grafana">Grafana</button>
       <button class="tab" data-tab="diag">Diag</button>
     </nav>
 
@@ -662,6 +663,57 @@
     </section>
 
     </div><!-- /tab:soc -->
+
+    <!-- TAB: Grafana (time-series dashboards — requires Grafana at localhost:3000) -->
+    <div class="tab-content" data-tab="grafana">
+      <section class="card">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Time-series metrics</p>
+            <h2>Grafana Dashboards</h2>
+          </div>
+          <p class="provider-label">Prometheus · Grafana · Auto-provisioned</p>
+        </div>
+        <p class="section-copy">Time-series graphs powered by Prometheus and Grafana. Select a time range below or use the dashboard links. Dashboards auto-provision — no configuration required. If Grafana is not running, start it with <code>dune metrics start</code>.</p>
+        <div class="grafana-time-range-bar">
+          <button class="grafana-time-btn active" data-range="1h">1h</button>
+          <button class="grafana-time-btn" data-range="6h">6h</button>
+          <button class="grafana-time-btn" data-range="24h">24h</button>
+          <button class="grafana-time-btn" data-range="7d">7d</button>
+          <button class="grafana-time-btn" data-range="30d">30d</button>
+          <button class="grafana-time-btn" data-range="90d">90d</button>
+          <button class="grafana-time-btn" data-range="6M">6m</button>
+          <button class="grafana-time-btn" data-range="1y">1y</button>
+        </div>
+      </section>
+
+      <section class="card grafana-embed-card">
+        <div class="section-heading">
+          <h3>Game Server Health</h3>
+        </div>
+        <iframe class="grafana-frame" id="grafana-noc"
+          src="http://localhost:3000/d-solo/dune-game-server-health/dune-game-server-health?orgId=1&from=now-1h&to=now&kiosk&theme=dark"
+          loading="lazy" title="Game Server Health dashboard"></iframe>
+      </section>
+
+      <section class="card grafana-embed-card">
+        <div class="section-heading">
+          <h3>Infrastructure Health</h3>
+        </div>
+        <iframe class="grafana-frame" id="grafana-soc"
+          src="http://localhost:3000/d-solo/dune-infrastructure-health/dune-infrastructure-health?orgId=1&from=now-1h&to=now&kiosk&theme=dark"
+          loading="lazy" title="Infrastructure Health dashboard"></iframe>
+      </section>
+
+      <section class="card grafana-embed-card">
+        <div class="section-heading">
+          <h3>Player &amp; Economy</h3>
+        </div>
+        <iframe class="grafana-frame" id="grafana-economy"
+          src="http://localhost:3000/d-solo/dune-player-economy/dune-player-economy?orgId=1&from=now-1h&to=now&kiosk&theme=dark"
+          loading="lazy" title="Player & Economy dashboard"></iframe>
+      </section>
+    </div>
 
     <!-- TAB: Diag -->
     <div class="tab-content" data-tab="diag">
