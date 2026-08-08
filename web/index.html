@@ -744,7 +744,7 @@
         </div>
         <p class="section-copy">Time-series graphs powered by Prometheus and Grafana. Select a time range below or use the dashboard links. Dashboards auto-provision — no configuration required. If Grafana is not running, start it with <code>dune metrics start</code>.</p>
         <div id="grafana-mixed-content-note" class="availability-note" hidden>
-          Grafana dashboards are not available when the console is accessed over HTTPS (Cloudflare Tunnel). The browser blocks mixed content — HTTP iframes inside an HTTPS page. Open the console directly via <code>http://&lt;your-server-ip&gt;:8088</code> or visit <a href="https://grafana.darkdante.org" target="_blank" rel="noopener">grafana.darkdante.org</a> directly to view dashboards.
+          Grafana dashboards are not available when the console is accessed over HTTPS or through a TLS-terminating reverse proxy (Cloudflare Tunnel, nginx, Traefik). The browser blocks mixed content — HTTP iframes inside an HTTPS page. To view dashboards, either: (1) access the console directly via HTTP on <code>&lt;your-server-ip&gt;:8088</code>, or (2) configure your reverse proxy to route <code>/grafana/*</code> to Grafana's <code>localhost:3000</code> so the addon can use same-origin URLs (no mixed content).
         </div>
         <div class="grafana-time-range-bar">
           <button class="grafana-time-btn active" data-range="1h">1h</button>
