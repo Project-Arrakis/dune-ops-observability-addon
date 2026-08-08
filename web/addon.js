@@ -15,6 +15,7 @@ const buttonEl = document.querySelector("#refresh-players");
 // only that tab's providers are dispatched — not all 9 at once.
 var TAB_CACHE_TTL_MS = 60000;
 var _tabCache = new Map();
+var _activeProvider = null; // set by refreshAll(), read by _refreshTab()
 var _tabProviders = {
   overview: ["opsHealth", "prometheus"],
   players:  ["opsHealth"],
@@ -52,8 +53,8 @@ function _providerMethod(source) {
 // Refreshes just the providers needed for a given tab. Uses cached results
 // if available and fresh; otherwise dispatches only that tab's providers.
 async function _refreshTab(tabName) {
-  if (!provider) { // provider set by refreshAll() on first load
-    try { provider = getProvider(); } catch (e) { return; }
+  if (!_activeProvider) {
+    try { _activeProvider = getProvider(); } catch (e) { return; }
   }
 
   var sources = _tabProviders[tabName] || [];
@@ -70,12 +71,12 @@ async function _refreshTab(tabName) {
       continue;
     }
     var method = _providerMethod(source);
-    if (!method || !provider[method]) {
+    if (!method || !_activeProvider[method]) {
       results.push(window.DuneOpsProviders.unavailableResult("request_failed", null));
       continue;
     }
     try {
-      var result = await provider[method]();
+      var result = await _activeProvider[method]();
       _tabCache.set(source, { result: result, at: now });
       results.push(result);
     } catch (e) {
@@ -102,7 +103,7 @@ function _renderTabData(tabName, results) {
       if (opsHealth) {
         var snap = normalizeOpsHealth(opsHealth);
         renderOpsAggregate(snap, new Date());
-        renderNocService(provider, snap, new Date(), prom);
+        renderNocService(_activeProvider, snap, new Date(), prom);
         renderNocResources(snap, prom);
       }
       if (prom) renderPrometheus(prom);
@@ -1362,24 +1363,24 @@ function settledToSourceResult(settled) {
 }
 
 async function refreshAll() {
-  let provider;
+  _activeProvider = null;
 
   try {
-    provider = getProvider();
-    if (providerLabelEl) providerLabelEl.textContent = `Provider: ${provider.label}`;
-    if (document.body) document.body.dataset.provider = provider.name;
-    _showPreviewWarning(provider);
+    _activeProvider = getProvider();
+    if (providerLabelEl) providerLabelEl.textContent = `Provider: ${_activeProvider.label}`;
+    if (document.body) document.body.dataset.provider = _activeProvider.name;
+    _showPreviewWarning(_activeProvider);
 
     const results = await Promise.allSettled([
-      provider.getOpsHealth ? provider.getOpsHealth() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null)),
-      provider.getActivity ? provider.getActivity() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null)),
-      provider.getCombat ? provider.getCombat() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null)),
-      provider.getResources ? provider.getResources() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null)),
-      provider.getEconomy ? provider.getEconomy() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null)),
-      provider.getInventory ? provider.getInventory() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null)),
-      provider.getLocation ? provider.getLocation() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null)),
-      provider.getSoc ? provider.getSoc() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null)),
-      provider.getPrometheusHealth ? provider.getPrometheusHealth() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null))
+      _activeProvider.getOpsHealth ? _activeProvider.getOpsHealth() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null)),
+      _activeProvider.getActivity ? _activeProvider.getActivity() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null)),
+      _activeProvider.getCombat ? _activeProvider.getCombat() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null)),
+      _activeProvider.getResources ? _activeProvider.getResources() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null)),
+      _activeProvider.getEconomy ? _activeProvider.getEconomy() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null)),
+      _activeProvider.getInventory ? _activeProvider.getInventory() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null)),
+      _activeProvider.getLocation ? _activeProvider.getLocation() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null)),
+      _activeProvider.getSoc ? _activeProvider.getSoc() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null)),
+      _activeProvider.getPrometheusHealth ? _activeProvider.getPrometheusHealth() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null))
     ]);
 
     const [opsHealth, activity, combat, resources, economy, inventory, location, soc, prometheus] = results.map(settledToSourceResult);
@@ -1397,10 +1398,10 @@ async function refreshAll() {
     renderLocation(location);
     renderSoc(soc);
     renderPrometheus(prometheus);
-    renderNocService(provider, snapshot, refreshedAt, prometheus);
+    renderNocService(_activeProvider, snapshot, refreshedAt, prometheus);
     renderNocResources(snapshot, prometheus);
 
-    const opsHealthResult = updateOpsHealth(provider, snapshot.available ? summary.totals : null, refreshedAt, snapshot.available ? null : new Error("ops.health.* unavailable"));
+    const opsHealthResult = updateOpsHealth(_activeProvider, snapshot.available ? summary.totals : null, refreshedAt, snapshot.available ? null : new Error("ops.health.* unavailable"));
 
     if (previousTotals === null) previousTotals = summary.totals;
 
@@ -1414,7 +1415,7 @@ async function refreshAll() {
 
     let statusMsg;
     let statusClassName;
-    if (provider.name === "bridge") {
+    if (_activeProvider.name === "bridge") {
       if (liveCount === totalCount) {
         statusMsg = `Connected to Dune Docker Console. All ${totalCount} observability sources online.`;
         statusClassName = "status-ok";
@@ -1433,7 +1434,7 @@ async function refreshAll() {
     updateFreshnessBadges();
 
     writeOutput({
-      provider: provider.name,
+      provider: _activeProvider.name,
       lastRefresh: refreshedAt.toISOString(),
       totals: summary.totals,
       opsHealth: opsHealthResult,
