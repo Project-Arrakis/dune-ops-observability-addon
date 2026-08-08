@@ -59,11 +59,13 @@ test("all referenced web assets exist", () => {
   const html = read("web/index.html");
   const scriptMatches = html.matchAll(/src="([^"]+)"/g);
   for (const [, src] of scriptMatches) {
+    if (src.startsWith("http://") || src.startsWith("https://")) continue;
     const srcPath = src.split("?")[0];
     assert.ok(existsSync(join(ROOT, "web", srcPath)), `script ${src} must exist`);
   }
   const linkMatches = html.matchAll(/href="([^"]+\.css)"/g);
   for (const [, href] of linkMatches) {
+    if (href.startsWith("http://") || href.startsWith("https://")) continue;
     const hrefPath = href.split("?")[0];
     assert.ok(existsSync(join(ROOT, "web", hrefPath)), `stylesheet ${href} must exist`);
   }
