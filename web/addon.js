@@ -849,6 +849,8 @@ function renderMapSection(section, els, sortFn) {
   // No currently-provisioned instances for this map is a real, valid state
   // (e.g. Deep Desert with nothing spawned) -- shown as an explicit empty
   // note, not as an error and not as a silently-blank instance list.
+  // Summary cards show real zeroes (0 active fields, 0 spice) which is truth —
+  // the empty-state note explains WHY there are zeroes.
   if (!instances.length) {
     if (emptyStateEl) emptyStateEl.hidden = false;
     return;

@@ -83,10 +83,10 @@
   --faction-accent: #ef4444;
   --faction-bg: rgba(220, 38, 38, .15);
   --faction-glow: rgba(239, 68, 68, 0.3);
-  --spice: #7c3aed;
-  --spice-text: #c4b5fd;
-  --spice-glow: #f59e0b;
-  --spice-bg: rgba(124, 58, 237, .10);
+  --spice: #dc2626;
+  --spice-text: #fca5a5;
+  --spice-glow: #ef4444;
+  --spice-bg: rgba(220, 38, 38, .08);
 }
 :root[data-tagged-faction="fremen"] {
   --faction-color: #2563eb;
@@ -426,6 +426,10 @@ button:focus-visible {
   color: var(--faction-accent);
   font-variant-numeric: tabular-nums;
   text-shadow: 0 0 12px var(--faction-glow);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
 }
 
 .health-card strong { font-size: var(--font-size-xl); }
@@ -505,20 +509,25 @@ tbody tr:hover {
 }
 
 .availability-note {
-  border: 1px dashed #fca5a5;
+  border: 1px solid rgba(200, 150, 62, 0.25);
+  border-left: 3px solid var(--status-degraded);
   border-radius: var(--radius-md);
-  padding: 16px 20px;
-  color: #fca5a5;
-  font-weight: 600;
+  padding: 14px 18px;
+  color: var(--status-degraded);
+  font-weight: 500;
   font-size: var(--font-size-sm);
-  background: rgba(252, 165, 165, 0.03);
+  line-height: 1.5;
+  background: rgba(184, 120, 46, 0.06);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
 }
 .availability-note::before {
-  content: "⚠";
+  content: "⊗";
   font-size: var(--font-size-md);
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-top: 1px;
 }
 
 .status-icon { flex-shrink: 0; }
@@ -719,9 +728,8 @@ pre { overflow: auto; white-space: pre-wrap; font-size: var(--font-size-xs); }
 [data-spice] strong { color: #c4b5fd; }
 [data-spice] .section-heading h2 { color: #c4b5fd; }
 
-/* Force spice color on ALL elements within spice tab */
+/* Force spice color on ALL elements within spice tab — uses the warm spice variable, never purple */
 .tab-content[data-spice],
-.tab-content[data-spice] *,
 .tab-content[data-spice] td,
 .tab-content[data-spice] th,
 .tab-content[data-spice] strong,
@@ -729,7 +737,7 @@ pre { overflow: auto; white-space: pre-wrap; font-size: var(--font-size-xs); }
 .tab-content[data-spice] h3,
 .tab-content[data-spice] .metric-label,
 .tab-content[data-spice] .section-copy,
-.tab-content[data-spice] .eyebrow { color: #c4b5fd !important; }
+.tab-content[data-spice] .eyebrow { color: var(--spice-text) !important; }
 
 /* ── Spice Melange: Deep Desert / Hagga Basin sections ── */
 .res-map-section {
@@ -911,6 +919,10 @@ pre { overflow: auto; white-space: pre-wrap; font-size: var(--font-size-xs); }
 .res-instance-metrics .metric-card strong {
   font-size: 1.3rem;
   margin-top: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
 }
 
 @media (max-width: 640px) {

@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Complete in-game Dune Awakening aesthetic redesign (v0.5).** Sand-toned
+  elevation surface system, warm amber/bronze default palette (replacing purple),
+  game-style tab navigation with accent underlines, metric card glow effects,
+  horizontal grain texture overlay, status beacon dots, graduated card shadows,
+  improved table zebra/hover states, tab fade-in animation. Default faction
+  theme now matches the game's desert aesthetic: Amber + Flat 2.0 + Border
+  Pattern + Glowing Edges + Metal Border + Stone textures. Harkonnen spice
+  colors harmonized with faction palette (red instead of purple).
+- **Availability notes redesigned.** Replaced dashed pink `⚠` icon with solid
+  amber `⊗` icon and amber left-border accent. Text contrast improved for
+  readability on dark backgrounds.
+
+### Security
+- **Removed hardcoded public IP** from `scripts/deploy/deploy-lib.sh` (was
+  `50.123.64.61`). Script now requires explicit `SERVER_IP` export or exits
+  with an error (M-2, from 8-hats review).
+- **Scoped gitleaks `gho_` allowlist** from global regex to per-rule path scope
+  (only placeable-cache + augment-cache paths). Previously any `gho_` token
+  committed anywhere in the repo was silently ignored (M-6).
+- **Added data-classification note to Diag tab.** Warning that diagnostic
+  output may contain raw bridge data — do not share screenshots (L-6).
+
+### Documentation
+- **Eight-hats findings register** created at `compliance/eight-hats-findings-register.md`
+  covering all 25 findings (2 HIGH, 8 MEDIUM, 15 LOW) plus AAA/NOC/SOC metrics
+  gap analysis (31 specific metrics missing across game ops, NOC, and SOC domains).
+- **Six Sonnet 5 implementation prompts** created at `prompts/` covering
+  architecture, security, GRC, AAA metrics, NOC metrics, and SOC metrics.
+- Fixed stale checkout path in repository docs (L-9).
+
 ### Fixed
 - **CI: `npm audit` high-severity `undici` advisory is now resolved.** The
   transitive `undici@7.28.0` (via devDependency `jsdom`) failed `npm audit
@@ -60,8 +91,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - 15 new Core-side tests (`dune-awakening-selfhost-docker`) covering the new per-instance/PvP-PvE resources shape, using a real `mapCombatState.js` subprocess resolver sandbox (not mocked).
 - 11 new addon-side jsdom behavioral tests (`test/addon-rendering.test.js`) covering the new Spice Melange layout's loading/empty/error states, PvP/PvE badge rendering, sort-order correctness, zero-preservation, and no-fabrication of per-size spice values.
-
-## [Unreleased]
 
 ### Security
 - Pin all GitHub Actions to immutable SHAs with version comments
