@@ -18,7 +18,7 @@
     does not govern.
   -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'; font-src 'self'; connect-src 'none'; frame-ancestors 'self'; base-uri 'none'; form-action 'none'">
-  <link rel="stylesheet" href="addon.css?v=1786155481">
+  <link rel="stylesheet" href="addon.css?v=1786173878">
 </head>
 <body>
   <main>
@@ -111,14 +111,34 @@
     <section class="card">
       <div class="section-heading">
         <div>
-          <p class="eyebrow">Addon read health</p>
-          <h2>Bridge &amp; Aggregate Status</h2>
+          <p class="eyebrow">Infrastructure health</p>
+          <h2>System Services</h2>
+        </div>
+        <p class="provider-label">Prometheus · ops.health.prometheus</p>
+      </div>
+      <p class="section-copy">Status of the host-level services that back this observability dashboard. All reported by Prometheus when the optional metrics stack is running; shows as unavailable until an operator runs <code>dune metrics start</code>.</p>
+      <div id="noc-metrics-cta" class="empty-state cta-note" hidden>
+        The optional Prometheus metrics stack is not running. Run <code>dune metrics start</code> on your server to enable host-level monitoring and populate this service health table.
+      </div>
+      <div class="table-wrap">
+        <table aria-label="System service health">
+          <thead><tr><th scope="col">Service</th><th scope="col">Status</th></tr></thead>
+          <tbody id="noc-system-service-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Data source health</p>
+          <h2>Bridge &amp; Data Sources</h2>
         </div>
         <p class="provider-label">Live · ops.health.*</p>
       </div>
-      <p class="section-copy">Health of this addon's own connection to the console bridge and the player/farm aggregate data it depends on — not a per-service infrastructure map. For individual game-server/database/queue status, use the Console's own service controls.</p>
+      <p class="section-copy">Health of this addon's own connection to the console bridge and the aggregate data sources it depends on. System service status is reported by Prometheus when the metrics stack is running. Data source status reflects the Console bridge connection. Both must be healthy for reliable monitoring.</p>
       <div class="table-wrap">
-        <table aria-label="Bridge and aggregate status">
+        <table aria-label="Bridge and data source status">
           <thead><tr><th scope="col">Component</th><th scope="col">State</th><th scope="col">Detail</th><th scope="col">Detail</th></tr></thead>
           <tbody id="noc-service-body"></tbody>
         </table>
@@ -344,7 +364,7 @@
         </article>
         <article class="metric-card">
           <span class="metric-label">PvP Deaths</span>
-          <strong id="cmb-pvp">0</strong>
+          <strong id="cmb-pvp" title="The death log schema does not distinguish PvP from PvE kills. All deaths currently report as PvE.">0</strong>
         </article>
         <article class="metric-card">
           <span class="metric-label">PvE Deaths</span>
@@ -531,7 +551,7 @@
         </article>
         <article class="metric-card">
           <span class="metric-label">Total Crafted</span>
-          <strong id="inv-crafted">0</strong>
+          <strong id="inv-crafted" title="This metric has no real data source in the game database schema. It is intentionally always unavailable.">0</strong>
         </article>
       </div>
       <div class="table-wrap">
@@ -651,7 +671,7 @@
         </article>
         <article class="metric-card">
           <span class="metric-label">Restarts (24h)</span>
-          <strong id="mtr-restarts">—</strong>
+          <strong id="mtr-restarts" title="Per-container restart counts are not currently obtainable on this deployment (a cAdvisor configuration limitation).">—</strong>
         </article>
       </div>
       <div class="table-wrap">
@@ -727,9 +747,9 @@
     </div><!-- /tab:diag -->
 
   </main>
-  <script src="faction-tagger.js?v=1786155481"></script>
-  <script src="dune-addon-bridge.js?v=1786155481"></script>
-  <script src="data-providers.js?v=1786155481"></script>
-  <script src="addon.js?v=1786155481"></script>
+  <script src="faction-tagger.js?v=1786173878"></script>
+  <script src="dune-addon-bridge.js?v=1786173878"></script>
+  <script src="data-providers.js?v=1786173878"></script>
+  <script src="addon.js?v=1786173878"></script>
 </body>
 </html>

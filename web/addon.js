@@ -143,6 +143,8 @@ const mtrRestartsEl = document.querySelector("#mtr-restarts");
 const mtrServiceBodyEl = document.querySelector("#mtr-service-body");
 const mtrAvailabilityEl = document.querySelector("#mtr-availability-note");
 
+const nocSystemServiceBodyEl = document.querySelector("#noc-system-service-body");
+const nocMetricsCtaEl = document.querySelector("#noc-metrics-cta");
 const nocServiceBodyEl = document.querySelector("#noc-service-body");
 const nocCpuEl = document.querySelector("#noc-cpu");
 const nocMemEl = document.querySelector("#noc-mem");
@@ -161,6 +163,20 @@ function writeStatus(text, className) {
   if (!statusEl) return;
   statusEl.textContent = text;
   statusEl.className = className || "";
+}
+
+// Preview mode warning — show a prominent status-bar alert when running in
+// sample/preview mode (not connected to a live console). The warning element
+// exists in index.html and is hidden by default; this function shows it when
+// the active provider is the sample/fixture provider.
+var _previewWarningEl = document.querySelector("#preview-warning");
+function _showPreviewWarning(provider) {
+  if (!_previewWarningEl) return;
+  if (provider && provider.name === "sample") {
+    _previewWarningEl.style.display = "";
+  } else {
+    _previewWarningEl.style.display = "none";
+  }
 }
 
 function writeOutput(value) {
@@ -249,6 +265,28 @@ function formatAge(milliseconds) {
   if (minutes < 60) return `${minutes}m ago`;
   const hours = Math.floor(minutes / 60);
   return `${hours}h ago`;
+}
+
+function freshnessBadgeClass() {
+  if (!lastSuccessfulReadAt) return "stale-critical";
+  const age = Date.now() - lastSuccessfulReadAt.getTime();
+  if (age < 60000) return "fresh";
+  if (age < 300000) return "stale";
+  return "stale-critical";
+}
+
+function updateFreshnessBadges() {
+  var ageText = lastSuccessfulReadAt ? formatAge(Date.now() - lastSuccessfulReadAt.getTime()) : "never";
+  var badgeClass = freshnessBadgeClass();
+  var headings = document.querySelectorAll(".section-heading h2, .section-heading h3, .res-map-heading h3");
+  headings.forEach(function (h) {
+    var existing = h.querySelector(".freshness-badge");
+    if (existing) existing.remove();
+    var badge = document.createElement("span");
+    badge.className = "freshness-badge " + badgeClass;
+    badge.textContent = ageText;
+    h.appendChild(badge);
+  });
 }
 
 function asNumber(value, fallback = 0) {
@@ -531,15 +569,15 @@ async function refreshOpsHealth() {
     });
 
     previousTotals = summary.totals;
-    renderNocService(provider, snapshot, refreshedAt);
-    renderNocResources(snapshot);
+    renderNocService(provider, snapshot, refreshedAt, null);
+    renderNocResources(snapshot, null);
   } catch (error) {
     const refreshedAt = new Date();
     const unavailableSnapshot = normalizeOpsHealth(null);
     renderOpsAggregate(unavailableSnapshot, refreshedAt);
     const opsHealth = updateOpsHealth(provider, null, refreshedAt, error);
-    renderNocService(provider, unavailableSnapshot, refreshedAt);
-    renderNocResources(unavailableSnapshot);
+    renderNocService(provider, unavailableSnapshot, refreshedAt, null);
+    renderNocResources(unavailableSnapshot, null);
     writeStatus("Unable to read Release 0.3 OPS health data from the configured provider.", "status-warn");
     writeOutput({
       provider: provider ? provider.name : "unknown",
@@ -1021,8 +1059,57 @@ function renderLocation(result) {
   }
 }
 
-function renderNocService(provider, snapshot, refreshedAt) {
+function renderSystemServicesTable(prometheusResult) {
+  clearTbody(nocSystemServiceBodyEl);
+  if (nocMetricsCtaEl) nocMetricsCtaEl.hidden = true;
+
+  if (!prometheusResult || prometheusResult.status === "unavailable") {
+    appendRow(nocSystemServiceBodyEl, ["Prometheus", "Unavailable — bridge error"]);
+    return;
+  }
+
+  if (prometheusResult.data && prometheusResult.data.status === "planned") {
+    if (nocMetricsCtaEl) nocMetricsCtaEl.hidden = false;
+    appendRow(nocSystemServiceBodyEl, ["Prometheus", "Not started"]);
+    return;
+  }
+
+  const d = prometheusResult.data || {};
+  const services = d.services || {};
+
+  if (d.error) {
+    appendRow(nocSystemServiceBodyEl, ["Prometheus", d.error]);
+    return;
+  }
+
+  const knownServices = ["dune-prometheus", "dune-node", "dune-postgres", "dune-rabbitmq-admin", "dune-rabbitmq-game", "dune-cadvisor"];
+  const serviceLabels = {
+    "dune-prometheus": "Prometheus",
+    "dune-node": "Node Exporter",
+    "dune-postgres": "Postgres Exporter",
+    "dune-rabbitmq-admin": "RabbitMQ Admin",
+    "dune-rabbitmq-game": "RabbitMQ Game",
+    "dune-cadvisor": "cAdvisor"
+  };
+
+  for (const job of knownServices) {
+    const status = services[job] || "unknown";
+    const label = serviceLabels[job] || job;
+    appendRow(nocSystemServiceBodyEl, [label, status]);
+  }
+
+  // also show any additional services not in the known list
+  for (const [job, status] of Object.entries(services)) {
+    if (!knownServices.includes(job)) {
+      appendRow(nocSystemServiceBodyEl, [job, status]);
+    }
+  }
+}
+
+function renderNocService(provider, snapshot, refreshedAt, prometheusResult) {
   clearTbody(nocServiceBodyEl);
+  renderSystemServicesTable(prometheusResult);
+
   if (!nocServiceBodyEl) return;
   const isBridge = provider && provider.name === "bridge";
   const totals = (snapshot && snapshot.totals) || {};
@@ -1033,17 +1120,38 @@ function renderNocService(provider, snapshot, refreshedAt) {
   appendRow(nocServiceBodyEl, ["Provider Mode", isBridge ? "Live Bridge" : "Sample Data", provider ? provider.label : "unknown", "—"]);
 }
 
-function renderNocResources(snapshot) {
-  setText(nocCpuEl, "—");
-  setText(nocMemEl, "—");
-  setText(nocDiskEl, "—");
-  setText(nocUptimeEl, "—");
+function renderNocResources(snapshot, prometheusResult) {
   const totals = (snapshot && snapshot.totals) || {};
   const s2s = totals.incomingS2s !== undefined ? `${totals.incomingS2s} in / ${totals.outgoingS2s} out` : "—";
   setText(nocFarmsTotalEl, totals.farms || 0);
   setText(nocFarmsReadyEl, `${totals.readyFarms || 0} / ${totals.aliveFarms || 0}`);
   setText(nocFarmsPlayersEl, totals.connectedPlayers !== undefined ? totals.connectedPlayers : totals.online || 0);
   setText(nocFarmsS2sEl, s2s);
+
+  if (!prometheusResult || prometheusResult.status === "unavailable" ||
+      (prometheusResult.data && prometheusResult.data.status === "planned")) {
+    setText(nocCpuEl, "—");
+    setText(nocMemEl, "—");
+    setText(nocDiskEl, "—");
+    setText(nocUptimeEl, "—");
+    return;
+  }
+
+  const d = prometheusResult.data || {};
+  const summary = d.summary || {};
+
+  if (d.healthy === false && d.error) {
+    setText(nocCpuEl, "—");
+    setText(nocMemEl, "—");
+    setText(nocDiskEl, "—");
+    setText(nocUptimeEl, "—");
+    return;
+  }
+
+  setText(nocCpuEl, summary.avgCpuPercent !== null && summary.avgCpuPercent !== undefined ? `${summary.avgCpuPercent}%` : "—");
+  setText(nocMemEl, summary.avgMemoryMb !== null && summary.avgMemoryMb !== undefined ? `${summary.avgMemoryMb} MB` : "—");
+  setText(nocDiskEl, summary.avgDiskPercent !== null && summary.avgDiskPercent !== undefined ? `${summary.avgDiskPercent}%` : "—");
+  setText(nocUptimeEl, summary.hostUptimeHours !== null && summary.hostUptimeHours !== undefined ? `${Math.round(summary.hostUptimeHours)}h` : "—");
 }
 
 const SOC_METRIC_ELS = [socHealthEl, socRequestsEl, socErrorsEl, socSuccessEl];
@@ -1139,6 +1247,7 @@ async function refreshAll() {
     provider = getProvider();
     if (providerLabelEl) providerLabelEl.textContent = `Provider: ${provider.label}`;
     if (document.body) document.body.dataset.provider = provider.name;
+    _showPreviewWarning(provider);
 
     const results = await Promise.allSettled([
       provider.getOpsHealth ? provider.getOpsHealth() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null)),
@@ -1167,8 +1276,8 @@ async function refreshAll() {
     renderLocation(location);
     renderSoc(soc);
     renderPrometheus(prometheus);
-    renderNocService(provider, snapshot, refreshedAt);
-    renderNocResources(snapshot);
+    renderNocService(provider, snapshot, refreshedAt, prometheus);
+    renderNocResources(snapshot, prometheus);
 
     const opsHealthResult = updateOpsHealth(provider, snapshot.available ? summary.totals : null, refreshedAt, snapshot.available ? null : new Error("ops.health.* unavailable"));
 
@@ -1200,6 +1309,7 @@ async function refreshAll() {
       statusClassName = "status-info";
     }
     writeStatus(statusMsg, statusClassName);
+    updateFreshnessBadges();
 
     writeOutput({
       provider: provider.name,

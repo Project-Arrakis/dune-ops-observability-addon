@@ -1,42 +1,29 @@
-# SOC 2 Compliance — Arrakis Control Panel
+# Compliance — dune-ops-observability-addon
 
-This directory contains SOC 2 control documentation, policies, evidence, and runbooks for the ACP ecosystem.
+This addon is a read-only UI component with no server-side code, no database,
+and no persistent state. It communicates with Core exclusively via postMessage
+bridge and renders aggregate-only data. Its compliance posture is derived from
+the Core repo's compliance framework
+(`dune-awakening-selfhost-docker/docs/security/`).
 
-## Structure
+## In-Scope Controls
 
-| Directory | Purpose |
-|---|---|
-| `controls/` | SOC 2 control matrix and mappings |
-| `policies/` | Security and operational policies |
-| `evidence/` | Audit evidence collection |
-| `runbooks/` | Incident response and recovery procedures |
-| `audit/` | Audit reports and findings |
+- **CI/CD gates:** Pre-commit (gitleaks, semgrep, trivy, unit tests), CI workflow
+  (shellcheck, npm-audit, security-scanning, CI gate)
+- **Branch protection:** Required status checks on `main` (7 checks), no force push
+- **Secret scanning:** gitleaks (pre-commit + CI), GitGuardian (GitHub App on PRs)
+- **CSP:** Content-Security-Policy meta tag in `web/index.html`
+- **Release evidence:** Per `ops-observability/roadmap/release-standard.md`
 
-## Controls
+## Out-of-Scope
 
-See `controls/soc2-matrix.md` for the full control matrix with status and evidence links.
+This addon has no server, no database, no authentication, and no persistent
+state. Controls that apply to the ACP bot or Core (SOC 2 policies, backup
+recovery, rollback, data deletion, access review) are documented in those
+repos, not duplicated here.
 
-## Policies
+## Audit Trail
 
-- [Threat Model](policies/threat-model.md)
-- [Data Classification](policies/data-classification.md)
-- [Access Review](policies/access-review.md)
-- [Log Retention](policies/log-retention.md)
-- [Data Retention](policies/data-retention.md)
-
-## Runbooks
-
-- [Incident Response](runbooks/incident-response.md)
-- [Backup & Recovery](runbooks/backup-recovery.md)
-- [Rollback](runbooks/rollback.md)
-- [Data Deletion](runbooks/data-deletion.md)
-
-## Audit Schedule
-
-| Type | Frequency | Next Due |
-|---|---|---|
-| Access Review | Quarterly | 2026-09-30 |
-| Backup Verification | Monthly | 2026-08-19 |
-| Vulnerability Scan | Continuous | Ongoing |
-| Log Review | Monthly | 2026-08-19 |
-| Full Audit | Annually | 2027-07-19 |
+- Eight-hats findings register: `compliance/eight-hats-findings-register.md`
+- Release evidence bundles: `ops-observability/evidence/releases/`
+- Incident index (cross-repo): `~/archive/INCIDENT-INDEX.md`

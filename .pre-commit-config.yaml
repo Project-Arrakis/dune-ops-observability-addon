@@ -78,6 +78,13 @@ repos:
         pass_filenames: false
         files: ^(addon\.json|scripts/validate\.js)$
 
+      - id: bridge-drift
+        name: Bridge-action drift check
+        entry: node scripts/check-bridge-action-drift.js
+        language: system
+        pass_filenames: false
+        files: ^(web/data-providers\.js|README\.md)$
+
       - id: unit-tests
         name: Unit tests (node --test)
         entry: npm test

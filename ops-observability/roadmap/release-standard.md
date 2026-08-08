@@ -136,7 +136,7 @@ Exit criteria:
 Every release must create:
 
 ```text
-~/dune-work/ops-observability/evidence/releases/<release-id>/
+ops-observability/evidence/releases/<release-id>/
 ```
 
 Required files:
@@ -160,6 +160,21 @@ release-decision.md
 ```
 
 If a file is not applicable, include the file with `Not applicable` and the reason.
+
+### Evidence Requirements by Release Type
+
+Not every release requires the full 16-file evidence bundle. The evidence
+requirement scales with release impact:
+
+| Release Type | Examples | Evidence Required |
+|---|---|---|
+| Major (N.0.0) | Breaking changes, new architecture | Full 16-file bundle |
+| Minor (0.N.0) | New features, new tabs, new data sources | Full 16-file bundle |
+| Patch (0.N.x) | Bug fixes, CSS tweaks, copy changes, config updates | Security scan output + CHANGELOG entry only |
+| Pre-release (x.y.z-rcN) | Release candidates | Security scan output only |
+
+Past releases 0.4.0 through 0.4.6 are grandfathered — evidence is not required
+retroactively. Starting from 0.5.0, this policy is enforced for all new releases.
 
 ## Release Decision Values
 
