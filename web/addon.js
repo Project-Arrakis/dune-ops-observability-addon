@@ -853,6 +853,8 @@ function renderMapSection(section, els, sortFn) {
   // the empty-state note explains WHY there are zeroes.
   if (!instances.length) {
     if (emptyStateEl) emptyStateEl.hidden = false;
+    if (instancesEl) while (instancesEl.firstChild) instancesEl.removeChild(instancesEl.firstChild);
+    if (instanceCountEl) instanceCountEl.textContent = "";
     return;
   }
   if (emptyStateEl) emptyStateEl.hidden = true;
