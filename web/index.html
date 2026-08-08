@@ -748,47 +748,62 @@
           <p class="provider-label">Prometheus · Grafana · Auto-provisioned</p>
         </div>
         <p class="section-copy">Time-series graphs powered by Prometheus and Grafana. Select a time range below or use the dashboard links. Dashboards auto-provision — no configuration required. If Grafana is not running, start it with <code>dune metrics start</code>.</p>
-        <div id="grafana-mixed-content-note" class="availability-note" hidden>
-          Grafana dashboards are not available when the console is accessed over HTTPS or through a TLS-terminating reverse proxy (Cloudflare Tunnel, nginx, Traefik). The browser blocks mixed content — HTTP iframes inside an HTTPS page. To view dashboards, either: (1) access the console directly via HTTP on <code>&lt;your-server-ip&gt;:8088</code>, or (2) configure your reverse proxy to route <code>/grafana/*</code> to Grafana's <code>localhost:3000</code> so the addon can use same-origin URLs (no mixed content).
+        <div id="grafana-mixed-content" style="display:none">
+          <section class="card">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">HTTPS limitation</p>
+                <h2>Grafana Dashboards</h2>
+              </div>
+            </div>
+            <p class="section-copy">Grafana's embedded dashboards require same-origin access (HTTP→HTTP or HTTPS→HTTPS). Since Grafana serves plain HTTP on port 3000 and this console is accessed over HTTPS, the browser blocks the iframes as mixed content.</p>
+            <p class="section-copy"><strong>To view dashboards:</strong></p>
+            <ol class="section-copy" style="padding-left:1.2em;margin-top:4px">
+              <li>Access the console over HTTP: <code>http://&lt;your-server-ip&gt;:8088</code></li>
+              <li>Or configure your reverse proxy to route <code>/grafana/*</code> → <code>localhost:3000</code></li>
+            </ol>
+          </section>
         </div>
-        <div class="grafana-time-range-bar">
-          <button class="grafana-time-btn active" data-range="1h">1h</button>
-          <button class="grafana-time-btn" data-range="6h">6h</button>
-          <button class="grafana-time-btn" data-range="24h">24h</button>
-          <button class="grafana-time-btn" data-range="7d">7d</button>
-          <button class="grafana-time-btn" data-range="30d">30d</button>
-          <button class="grafana-time-btn" data-range="90d">90d</button>
-          <button class="grafana-time-btn" data-range="6M">6m</button>
-          <button class="grafana-time-btn" data-range="1y">1y</button>
-        </div>
-      </section>
+        <div id="grafana-embeds" style="display:none">
+          <div class="grafana-time-range-bar">
+            <button class="grafana-time-btn active" data-range="1h">1h</button>
+            <button class="grafana-time-btn" data-range="6h">6h</button>
+            <button class="grafana-time-btn" data-range="24h">24h</button>
+            <button class="grafana-time-btn" data-range="7d">7d</button>
+            <button class="grafana-time-btn" data-range="30d">30d</button>
+            <button class="grafana-time-btn" data-range="90d">90d</button>
+            <button class="grafana-time-btn" data-range="6M">6m</button>
+            <button class="grafana-time-btn" data-range="1y">1y</button>
+          </div>
+        </section>
 
-      <section class="card grafana-embed-card">
-        <div class="section-heading">
-          <h3>Game Server Health</h3>
-        </div>
-        <iframe class="grafana-frame" id="grafana-noc"
-          data-src="http://localhost:3000/d-solo/dune-game-server-health/dune-game-server-health?orgId=1&from=now-1h&to=now&kiosk&theme=dark"
-          loading="lazy" title="Game Server Health dashboard"></iframe>
-      </section>
+        <section class="card grafana-embed-card">
+          <div class="section-heading">
+            <h3>Game Server Health</h3>
+          </div>
+          <iframe class="grafana-frame" id="grafana-noc"
+            data-src="http://localhost:3000/d-solo/dune-game-server-health/dune-game-server-health?orgId=1&from=now-1h&to=now&kiosk&theme=dark"
+            loading="lazy" title="Game Server Health dashboard"></iframe>
+        </section>
 
-      <section class="card grafana-embed-card">
-        <div class="section-heading">
-          <h3>Infrastructure Health</h3>
-        </div>
-        <iframe class="grafana-frame" id="grafana-soc"
-          data-src="http://localhost:3000/d-solo/dune-infrastructure-health/dune-infrastructure-health?orgId=1&from=now-1h&to=now&kiosk&theme=dark"
-          loading="lazy" title="Infrastructure Health dashboard"></iframe>
-      </section>
+        <section class="card grafana-embed-card">
+          <div class="section-heading">
+            <h3>Infrastructure Health</h3>
+          </div>
+          <iframe class="grafana-frame" id="grafana-soc"
+            data-src="http://localhost:3000/d-solo/dune-infrastructure-health/dune-infrastructure-health?orgId=1&from=now-1h&to=now&kiosk&theme=dark"
+            loading="lazy" title="Infrastructure Health dashboard"></iframe>
+        </section>
 
-      <section class="card grafana-embed-card">
-        <div class="section-heading">
-          <h3>Player &amp; Economy</h3>
-        </div>
-        <iframe class="grafana-frame" id="grafana-economy"
-          data-src="http://localhost:3000/d-solo/dune-player-economy/dune-player-economy?orgId=1&from=now-1h&to=now&kiosk&theme=dark"
-          loading="lazy" title="Player & Economy dashboard"></iframe>
-      </section>
+        <section class="card grafana-embed-card">
+          <div class="section-heading">
+            <h3>Player &amp; Economy</h3>
+          </div>
+          <iframe class="grafana-frame" id="grafana-economy"
+            data-src="http://localhost:3000/d-solo/dune-player-economy/dune-player-economy?orgId=1&from=now-1h&to=now&kiosk&theme=dark"
+            loading="lazy" title="Player & Economy dashboard"></iframe>
+        </section>
+      </div><!-- /grafana-embeds -->
     </div>
 
     <!-- TAB: Diag -->

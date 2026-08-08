@@ -150,31 +150,24 @@ function _renderTabData(tabName, results) {
   var rangeBtns = document.querySelectorAll(".grafana-time-btn");
   if (!rangeBtns.length) return;
   var frames = document.querySelectorAll(".grafana-frame");
+  var embedsEl = document.getElementById("grafana-embeds");
+  var mixedEl = document.getElementById("grafana-mixed-content");
 
-  // Detect if the page is loaded over HTTPS. If so, Grafana's plain-HTTP
-  // iframes won't load (browser blocks mixed content). Show an honest
-  // message instead of silently broken iframes.
   var isHttps = window.location.protocol === "https:";
   if (!isHttps && window.parent !== window) {
-    try { isHttps = window.parent.location.protocol === "https:"; } catch (e) { /* cross-origin — assume same */ }
+    try { isHttps = window.parent.location.protocol === "https:"; } catch (e) {}
   }
-  var grafanaTab = document.querySelector('.tab-content[data-tab="grafana"]');
-  var mixedContentNote = document.getElementById("grafana-mixed-content-note");
 
   if (isHttps) {
-    // Can't embed HTTP Grafana in an HTTPS page — show explanation instead
-    if (mixedContentNote) mixedContentNote.hidden = false;
-    frames.forEach(function (f) { f.hidden = true; });
-    if (grafanaTab) {
-      var cards = grafanaTab.querySelectorAll(".grafana-embed-card");
-      cards.forEach(function (c) { c.hidden = true; });
-    }
+    // HTTPS: show explanation, hide embeds
+    if (mixedEl) mixedEl.style.display = "";
+    if (embedsEl) embedsEl.style.display = "none";
     return;
   }
 
-  // HTTP page — set iframe src from data-src (never set in HTML to avoid
-  // the browser firing mixed-content prompts before JS can intercept)
-  if (mixedContentNote) mixedContentNote.hidden = true;
+  // HTTP: show embeds, hide explanation, populate iframe src from data-src
+  if (mixedEl) mixedEl.style.display = "none";
+  if (embedsEl) embedsEl.style.display = "";
   frames.forEach(function (f) {
     var ds = f.getAttribute("data-src");
     if (ds) { f.src = ds; f.removeAttribute("data-src"); }
