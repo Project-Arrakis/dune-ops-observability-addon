@@ -145,11 +145,33 @@ function _renderTabData(tabName, results) {
   });
 })();
 
-// ── Grafana tab: time-range selector ──
+// ── Grafana tab: time-range selector + mixed-content fix ──
 (function initGrafanaTimeRange() {
   var rangeBtns = document.querySelectorAll(".grafana-time-btn");
   if (!rangeBtns.length) return;
   var frames = document.querySelectorAll(".grafana-frame");
+
+  // Detect if the page is loaded over HTTPS. If so, Grafana's plain-HTTP
+  // iframes won't load (browser blocks mixed content). Show an honest
+  // message instead of silently broken iframes.
+  var isHttps = window.location.protocol === "https:" ||
+    (window.parent !== window && window.parent.location.protocol === "https:");
+  var grafanaTab = document.querySelector('.tab-content[data-tab="grafana"]');
+  var mixedContentNote = document.getElementById("grafana-mixed-content-note");
+
+  if (isHttps && mixedContentNote) {
+    mixedContentNote.hidden = false;
+    frames.forEach(function (f) { f.hidden = true; });
+    if (grafanaTab) {
+      var cards = grafanaTab.querySelectorAll(".grafana-embed-card");
+      cards.forEach(function (c) { c.hidden = true; });
+    }
+    return;
+  }
+
+  // Show iframes, hide the note
+  if (mixedContentNote) mixedContentNote.hidden = true;
+
   var updateRange = function (range) {
     var fromMap = { "1h": "now-1h", "6h": "now-6h", "24h": "now-24h", "7d": "now-7d", "30d": "now-30d", "90d": "now-90d", "6M": "now-6M", "1y": "now-1y" };
     var from = fromMap[range] || "now-1h";
