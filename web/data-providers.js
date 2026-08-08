@@ -194,7 +194,7 @@
       summary: { totalActiveFields: 5, totalRemainingSpice: 25000, pvpInstances: 1, pveInstances: 0, bySize: [{ size: "Small", activeFields: 5 }] },
       instances: [
         {
-          partitionId: "1", dimensionIndex: 0, name: "Sietch Abbir", runtimeStatus: "RUNNING", combatState: "PVP",
+          partitionId: "1", dimensionIndex: 0, name: "Sietch Tabr", runtimeStatus: "RUNNING", combatState: "PVP",
           activeFields: 5, remainingSpice: 25000,
           sizes: [{ size: "Small", activeFields: 5, remainingSpice: null }]
         }
