@@ -846,21 +846,21 @@ function renderMapSection(section, els, sortFn) {
 
   if (instancesEl) while (instancesEl.firstChild) instancesEl.removeChild(instancesEl.firstChild);
 
-  // No currently-provisioned instances for this map is a real, valid state
-  // (e.g. Deep Desert with nothing spawned) -- shown as an explicit empty
-  // note, not as an error and not as a silently-blank instance list.
-  // Summary cards show real zeroes (0 active fields, 0 spice) which is truth —
-  // the empty-state note explains WHY there are zeroes.
+  // Empty instance list: hide the section wrapper entirely (summary cards,
+  // heading, instance list) to prevent stale data from a previous render
+  // from showing alongside the empty-state message. Only show the empty note.
   if (!instances.length) {
+    if (sectionEl) sectionEl.hidden = true;
     if (emptyStateEl) emptyStateEl.hidden = false;
-    if (instancesEl) while (instancesEl.firstChild) instancesEl.removeChild(instancesEl.firstChild);
-    if (instanceCountEl) instanceCountEl.textContent = "";
     return;
   }
+  // Has instances: show the section, hide any empty note, render instance cards.
+  if (sectionEl) sectionEl.hidden = false;
   if (emptyStateEl) emptyStateEl.hidden = true;
 
   const sorted = sortFn(instances);
   if (instancesEl) {
+    while (instancesEl.firstChild) instancesEl.removeChild(instancesEl.firstChild);
     for (const instance of sorted) instancesEl.appendChild(renderInstanceCard(instance));
   }
 }

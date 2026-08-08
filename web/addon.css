@@ -3,6 +3,11 @@
    Designed to feel like it was extracted directly from the game UI. */
 
 /* ── Core Palette ── */
+/* Force the HTML hidden attribute to always win over CSS display properties.
+   Without this, .empty-state { display: flex } overrides [hidden]'s
+   display: none, making element.hidden = true have no visual effect. */
+[hidden], [hidden=""] { display: none !important; }
+
 :root {
   color-scheme: dark;
   font-family: Inter, ui-sans-serif, system-ui, sans-serif;
