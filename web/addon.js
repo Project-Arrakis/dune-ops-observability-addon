@@ -173,17 +173,17 @@ function _renderTabData(tabName, results) {
     if (ds) { f.src = ds; f.removeAttribute("data-src"); }
   });
 
-  var updateRange = function (range) {
+  var updateRange = function (range, e) {
     var fromMap = { "1h": "now-1h", "6h": "now-6h", "24h": "now-24h", "7d": "now-7d", "30d": "now-30d", "90d": "now-90d", "6M": "now-6M", "1y": "now-1y" };
     var from = fromMap[range] || "now-1h";
     rangeBtns.forEach(function (b) { b.classList.remove("active"); });
-    event.target.classList.add("active");
-    frames.forEach(function (f) {
-      f.src = f.src.replace(/from=[^&]+/, "from=" + from);
-    });
+    if (e && e.target) e.target.classList.add("active");
+  frames.forEach(function (f) {
+    f.src = f.src.replace(/from=[^&]+/, "from=" + from);
+  });
   };
   rangeBtns.forEach(function (btn) {
-    btn.addEventListener("click", function () { updateRange(btn.dataset.range); });
+    btn.addEventListener("click", function (e) { updateRange(btn.dataset.range, e); });
   });
 })();
 const playersBodyEl = document.querySelector("#players-body");
@@ -1416,7 +1416,14 @@ async function refreshAll() {
       _activeProvider.getPrometheusHealth ? _activeProvider.getPrometheusHealth() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null))
     ]);
 
-    const [opsHealth, activity, combat, resources, economy, inventory, location, soc, prometheus] = results.map(settledToSourceResult);
+    const sourceResults = results.map(settledToSourceResult);
+    const [opsHealth, activity, combat, resources, economy, inventory, location, soc, prometheus] = sourceResults;
+
+    // Populate _tabCache so tab switches don't re-fetch data already loaded
+    var cacheAt = Date.now();
+    SOURCE_NAMES.forEach(function(name, i) {
+      _tabCache.set(name, { result: sourceResults[i], at: cacheAt });
+    });
 
     const snapshot = normalizeOpsHealth(opsHealth);
     const refreshedAt = new Date();
@@ -1442,7 +1449,6 @@ async function refreshAll() {
     // unconditionally claiming "All observability sources online" whenever
     // the provider happens to be "bridge" — that message was previously
     // shown even when every single one of the 9 sources had failed.
-    const sourceResults = [opsHealth, activity, combat, resources, economy, inventory, location, soc, prometheus];
     const liveCount = sourceResults.filter(r => r && (r.status === "live" || r.status === "preview")).length;
     const totalCount = sourceResults.length;
 

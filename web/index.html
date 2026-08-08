@@ -25,7 +25,7 @@
     <section class="card hero-card">
       <div>
         <p class="eyebrow">Read-only operations</p>
-        <h1>Dune Ops Observability <span class="release-version">r0.4.7</span></h1>
+        <h1>Dune Ops Observability <span class="release-version">r0.5.0</span></h1>
         <div id="status-banner" class="status-banner">
           <span class="status-badge">Initializing</span>
           <span id="status">Addon loaded.</span>
@@ -748,23 +748,27 @@
           <p class="provider-label">Prometheus · Grafana · Auto-provisioned</p>
         </div>
         <p class="section-copy">Time-series graphs powered by Prometheus and Grafana. Select a time range below or use the dashboard links. Dashboards auto-provision — no configuration required. If Grafana is not running, start it with <code>dune metrics start</code>.</p>
-        <div id="grafana-mixed-content" style="display:none">
-          <section class="card">
-            <div class="section-heading">
-              <div>
-                <p class="eyebrow">HTTPS limitation</p>
-                <h2>Grafana Dashboards</h2>
-              </div>
+      </section>
+
+      <div id="grafana-mixed-content" style="display:none">
+        <section class="card">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">HTTPS limitation</p>
+              <h2>Grafana Dashboards</h2>
             </div>
-            <p class="section-copy">Grafana's embedded dashboards require same-origin access (HTTP→HTTP or HTTPS→HTTPS). Since Grafana serves plain HTTP on port 3000 and this console is accessed over HTTPS, the browser blocks the iframes as mixed content.</p>
-            <p class="section-copy"><strong>To view dashboards:</strong></p>
-            <ol class="section-copy" style="padding-left:1.2em;margin-top:4px">
-              <li>Access the console over HTTP: <code>http://&lt;your-server-ip&gt;:8088</code></li>
-              <li>Or configure your reverse proxy to route <code>/grafana/*</code> → <code>localhost:3000</code></li>
-            </ol>
-          </section>
-        </div>
-        <div id="grafana-embeds" style="display:none">
+          </div>
+          <p class="section-copy">Grafana's embedded dashboards require same-origin access (HTTP→HTTP or HTTPS→HTTPS). Since Grafana serves plain HTTP on port 3000 and this console is accessed over HTTPS, the browser blocks the iframes as mixed content.</p>
+          <p class="section-copy"><strong>To view dashboards:</strong></p>
+          <ol class="section-copy" style="padding-left:1.2em;margin-top:4px">
+            <li>Access the console over HTTP: <code>http://&lt;your-server-ip&gt;:8088</code></li>
+            <li>Or configure your reverse proxy to route <code>/grafana/*</code> → <code>localhost:3000</code></li>
+          </ol>
+        </section>
+      </div>
+
+      <div id="grafana-embeds">
+        <section class="card">
           <div class="grafana-time-range-bar">
             <button class="grafana-time-btn active" data-range="1h">1h</button>
             <button class="grafana-time-btn" data-range="6h">6h</button>

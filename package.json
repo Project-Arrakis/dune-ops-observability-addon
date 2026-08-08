@@ -1,6 +1,6 @@
 {
   "name": "dune-ops-observability-addon",
-  "version": "0.4.7",
+  "version": "0.5.0",
   "private": true,
   "description": "Read-only operations addon for Dune Docker Console. No runtime or build dependencies by design — the addon UI (web/) ships as plain HTML/CSS/JS with no bundler. jsdom below is a devDependency for behavioral test coverage only and is never shipped in web/.",
   "scripts": {
