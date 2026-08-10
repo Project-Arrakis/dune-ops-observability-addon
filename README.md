@@ -7,7 +7,7 @@ It gives server owners and operators a lightweight visibility surface for player
 ## Status
 
 - Public addon: listed through the community addon catalog.
-- Current release train: `v0.4.1` (NOC Dashboard Phase 1).
+- Current release train: `v0.5.1` (Phase 0: tab-aware lazy loading, Grafana tab, NOC service table, placeholder tabs for AAA/NOC/Audit metrics).
 - Upstream Dune Docker Console: the 9 bridge action families this addon calls (listed in "Current bridge-backed actions" below) were last individually re-confirmed against Core `v1.3.61`'s route table on 2026-07-22 — see `docs/SECURITY-ARCHITECTURE-GAP-ANALYSIS.md`. This is a targeted route-table check, not a full end-to-end compatibility test across the intervening versions from the previously-stated `v1.3.45`. No compatibility-tracking automation exists yet; re-verify against Core's `console/api/src/server.js` route table before relying on this line if significant time has passed since the date above.
 - Runtime model: static addon UI loaded inside Dune Docker Console as an iframe.
 - Production data path: Dune Docker Console addon bridge.
@@ -69,7 +69,7 @@ The addon does not request or use:
 
 **Economy and inventory data**: the addon does call `ops.economy.summary` and `ops.inventory.summary` (both aggregate totals only — no player-level identifiers; see "Current bridge-backed actions" below for their current live/unavailable status) under the same `ops:read` permission as every other panel. An earlier version of this document stated the addon does not use economy or inventory data at all — that was inaccurate as of the shipped `v0.4.x` code, which has queried `ops.economy.summary` since the Activity/Combat/Resources/Economy panels were added. Both remain read-only, aggregate-only queries within the single `ops:read` scope; no new permission scope was introduced to add them.
 
-Previous releases used `players:read`. The v0.3.0 release upgraded to `ops:read` to support the OPS Health Foundation panels without expanding the permission boundary beyond read-only operations access. Current release v0.4.1 continues with `ops:read`.
+Previous releases used `players:read`. The v0.3.0 release upgraded to `ops:read` to support the OPS Health Foundation panels without expanding the permission boundary beyond read-only operations access. Current release v0.5.1 continues with `ops:read`.
 
 Future features that require a new permission, new bridge action, new upstream route, retained history, export, alerting, economy data, storage data, inventory data, or admin/security-sensitive data must go through design review before implementation.
 
@@ -338,7 +338,7 @@ Near-term releases:
 - `v0.3.0`: OPS Health Foundation — source health, bridge freshness, stale-data warnings, operator status (released)
 - `v0.4.0`: Game Activity & Combat — sessions, transitions, retention, PvP/PvE, NPC kills (released)
 - `v0.4.1`: Security & CI Hardening — pinned actions, SBOM, dependency review, unavailable states, tests (released)
-- `v0.5.0`: NOC Dashboard (Phase 1) — service health map, CCU tracking, resource snapshot, deployment health (in development)
+- `v0.5.1`: Phase 0 — tab-aware lazy loading, NOC service table, freshness badges, Grafana tab, placeholder tabs, live resource gauges (released 2026-08-10)
 - `v0.6.0`: Economy & Resources — gathering, currency, market, inflation
 - `v0.7.0`: World & Assets — crafting, territory, heat maps, storage
 - `v1.0.0`: SOC/OPS Operations Center — platform health, Prometheus display, runbooks (requires Core R3+R4)
