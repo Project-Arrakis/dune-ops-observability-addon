@@ -1415,7 +1415,7 @@ function renderPrometheus(result) {
   }
 }
 
-const SOURCE_NAMES = ["opsHealth", "activity", "combat", "resources", "economy", "inventory", "location", "soc", "prometheus"];
+const SOURCE_NAMES = ["opsHealth", "activity", "combat", "resources", "economy", "inventory", "location", "soc", "prometheus", "containerHealth"];
 
 // Promise.allSettled's rejection branch previously collapsed to a bare `{}`
 // (F-1/F-4's root cause for this call site): a rejected getXxx() call (e.g.
@@ -1450,11 +1450,12 @@ async function refreshAll() {
       _activeProvider.getInventory ? _activeProvider.getInventory() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null)),
       _activeProvider.getLocation ? _activeProvider.getLocation() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null)),
       _activeProvider.getSoc ? _activeProvider.getSoc() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null)),
-      _activeProvider.getPrometheusHealth ? _activeProvider.getPrometheusHealth() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null))
+      _activeProvider.getPrometheusHealth ? _activeProvider.getPrometheusHealth() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null)),
+      _activeProvider.getContainerHealth ? _activeProvider.getContainerHealth() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null))
     ]);
 
     const sourceResults = results.map(settledToSourceResult);
-    const [opsHealth, activity, combat, resources, economy, inventory, location, soc, prometheus] = sourceResults;
+    const [opsHealth, activity, combat, resources, economy, inventory, location, soc, prometheus, containerHealth] = sourceResults;
 
     // Populate _tabCache so tab switches don't re-fetch data already loaded
     var cacheAt = Date.now();
