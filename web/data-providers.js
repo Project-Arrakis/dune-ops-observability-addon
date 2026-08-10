@@ -426,6 +426,9 @@
       },
       async getPrometheusHealth() {
         return fetchLiveOrUnavailable("ops.health.prometheus");
+      },
+      async getContainerHealth() {
+        return fetchLiveOrUnavailable("ops.health.containers");
       }
     }
   };
