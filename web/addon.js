@@ -17,7 +17,7 @@ var TAB_CACHE_TTL_MS = 60000;
 var _tabCache = new Map();
 var _activeProvider = null; // set by refreshAll(), read by _refreshTab()
 var _tabProviders = {
-  overview: ["opsHealth", "prometheus"],
+  overview: ["opsHealth", "prometheus", "containerHealth"],
   players:  ["opsHealth"],
   activity: ["activity"],
   combat:   ["combat"],
@@ -106,6 +106,7 @@ function _renderTabData(tabName, results) {
     case "overview":
       var opsHealth = get("opsHealth");
       var prom = get("prometheus");
+      var containers = get("containerHealth");
       if (opsHealth) {
         var snap = normalizeOpsHealth(opsHealth);
         renderOpsAggregate(snap, new Date());
@@ -113,6 +114,7 @@ function _renderTabData(tabName, results) {
         renderNocResources(snap, prom);
       }
       if (prom) renderPrometheus(prom);
+      if (containers) renderContainerHealth(containers);
       break;
     case "players":
       var oh = get("opsHealth");
