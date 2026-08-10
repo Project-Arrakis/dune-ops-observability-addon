@@ -1279,7 +1279,8 @@ function renderContainerHealth(result) {
   }
   hideAvailabilityNote(nocInfraAvailabilityEl);
   clearTbody(nocInfraContainerBodyEl);
-  const containers = (result.data && result.data.containers) || [];
+  const d = (result.data && result.data.result) ? result.data.result : (result.data || {});
+  const containers = d.containers || [];
   for (const c of containers) {
     appendRow(nocInfraContainerBodyEl, [c.name || "?", c.cpu || "—", c.mem || "—", c.netIO || "—", c.status || "—"]);
   }
