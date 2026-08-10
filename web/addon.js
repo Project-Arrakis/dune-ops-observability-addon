@@ -5,7 +5,7 @@ const buttonEl = document.querySelector("#refresh-players");
 (function initFaction() {
   try {
     var faction = parent.document.documentElement.getAttribute("data-faction");
-    if (faction) document.documentElement.setAttribute("data-faction", faction);
+    if (faction) document.documentElement.setAttribute("data-tagged-faction", faction);
   } catch (e) {}
 })();
 

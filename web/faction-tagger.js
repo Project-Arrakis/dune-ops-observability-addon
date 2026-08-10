@@ -53,7 +53,7 @@
   function inheritFromParent() {
     try {
       var faction = parent.document.documentElement.getAttribute("data-faction");
-      if (faction) document.documentElement.setAttribute("data-faction", faction);
+      if (faction) document.documentElement.setAttribute("data-tagged-faction", faction);
     } catch (e) {}
   }
 

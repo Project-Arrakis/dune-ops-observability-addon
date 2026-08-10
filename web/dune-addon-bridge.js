@@ -6,7 +6,7 @@
     if (window.parent === window) {
       return Promise.reject(new Error("Bridge unavailable outside Dune Docker Console."));
     }
-    const requestId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const requestId = `${Date.now()}-${crypto.randomUUID()}`;
     return new Promise((resolve, reject) => {
       pending.set(requestId, { resolve, reject });
       window.parent.postMessage({ type: "dune-addon-request", addonId, requestId, action, payload }, window.location.origin);

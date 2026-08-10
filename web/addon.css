@@ -119,7 +119,7 @@ body {
   padding: 0;
   background:
     radial-gradient(ellipse 80% 60% at 50% 0%, rgba(200, 150, 62, 0.04) 0%, transparent 100%),
-    var(--surface-0) url('images/addon-bg.png') no-repeat center top;
+    var(--surface-0) url('images/addon-bg.webp') no-repeat center top;
   background-size: 100% auto, 100% auto;
   background-attachment: fixed;
   min-height: 100vh;
