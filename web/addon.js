@@ -30,7 +30,7 @@ var _tabProviders = {
   diag:     [],
   // Phase 0 placeholder tabs — will dispatch real providers when Core R3 lands
   aaa:      [],
-  "noc-infra": [],
+  "noc-infra": ["containerHealth"],
   audit:    []
 };
 
@@ -45,7 +45,8 @@ function _providerMethod(source) {
     inventory: "getInventory",
     location: "getLocation",
     soc: "getSoc",
-    prometheus: "getPrometheusHealth"
+    prometheus: "getPrometheusHealth",
+    containerHealth: "getContainerHealth"
   };
   return map[source];
 }
@@ -121,6 +122,10 @@ function _renderTabData(tabName, results) {
     case "economy":   renderEconomy(get("economy")); break;
     case "inventory": renderInventory(get("inventory")); break;
     case "location":  renderLocation(get("location")); break;
+    case "noc-infra":
+      var containerData = get("containerHealth");
+      if (containerData) renderContainerHealth(containerData);
+      break;
     case "soc":
       var socData = get("soc");
       var promData = get("prometheus");
@@ -292,6 +297,8 @@ const mtrAvailabilityEl = document.querySelector("#mtr-availability-note");
 
 const nocSystemServiceBodyEl = document.querySelector("#noc-system-service-body");
 const nocMetricsCtaEl = document.querySelector("#noc-metrics-cta");
+const nocInfraContainerBodyEl = document.querySelector("#noc-infra-container-body");
+const nocInfraAvailabilityEl = document.querySelector("#noc-infra-availability-note");
 const nocServiceBodyEl = document.querySelector("#noc-service-body");
 const nocCpuEl = document.querySelector("#noc-cpu");
 const nocMemEl = document.querySelector("#noc-mem");
@@ -1258,6 +1265,23 @@ function renderSystemServicesTable(prometheusResult) {
     if (!knownServices.includes(job)) {
       appendRow(nocSystemServiceBodyEl, [job, status]);
     }
+  }
+}
+
+function renderContainerHealth(result) {
+  if (!result || result.status === "unavailable") {
+    if (nocInfraAvailabilityEl) {
+      nocInfraAvailabilityEl.hidden = false;
+      nocInfraAvailabilityEl.textContent = unavailableMessage(result);
+    }
+    clearTbody(nocInfraContainerBodyEl);
+    return;
+  }
+  hideAvailabilityNote(nocInfraAvailabilityEl);
+  clearTbody(nocInfraContainerBodyEl);
+  const containers = (result.data && result.data.containers) || [];
+  for (const c of containers) {
+    appendRow(nocInfraContainerBodyEl, [c.name || "?", c.cpu || "—", c.mem || "—", c.netIO || "—", c.status || "—"]);
   }
 }
 
