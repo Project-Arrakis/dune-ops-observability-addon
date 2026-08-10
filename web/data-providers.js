@@ -400,6 +400,9 @@
           return unavailableResult("request_failed", "ops.health.*");
         }
       },
+      async getContainerHealth() {
+        return fetchLiveOrUnavailable("ops.health.containers");
+      },
       async getActivity() {
         return fetchLiveOrUnavailable("ops.activity.summary");
       },
