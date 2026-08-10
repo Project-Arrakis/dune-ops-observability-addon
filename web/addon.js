@@ -17,7 +17,7 @@ var TAB_CACHE_TTL_MS = 60000;
 var _tabCache = new Map();
 var _activeProvider = null; // set by refreshAll(), read by _refreshTab()
 var _tabProviders = {
-  overview: ["opsHealth", "prometheus", "containerHealth"],
+  overview: ["opsHealth", "prometheus"],
   players:  ["opsHealth"],
   activity: ["activity"],
   combat:   ["combat"],
@@ -72,13 +72,8 @@ async function _refreshTab(tabName) {
       continue;
     }
     var method = _providerMethod(source);
-    if (!method) {
+    if (!method || !_activeProvider[method]) {
       results.push(window.DuneOpsProviders.unavailableResult("request_failed", null));
-      continue;
-    }
-    if (!_activeProvider[method]) {
-      // Provider doesn't have this method (e.g. sample provider) — use planned status
-      results.push({ status: "unavailable", data: { status: "planned" }, reason: "not_implemented", source: tabName });
       continue;
     }
     try {
@@ -106,7 +101,6 @@ function _renderTabData(tabName, results) {
     case "overview":
       var opsHealth = get("opsHealth");
       var prom = get("prometheus");
-      var containers = get("containerHealth");
       if (opsHealth) {
         var snap = normalizeOpsHealth(opsHealth);
         renderOpsAggregate(snap, new Date());
@@ -114,7 +108,6 @@ function _renderTabData(tabName, results) {
         renderNocResources(snap, prom);
       }
       if (prom) renderPrometheus(prom);
-      if (containers) renderContainerHealth(containers);
       break;
     case "players":
       var oh = get("opsHealth");
@@ -1286,13 +1279,7 @@ function renderContainerHealth(result) {
   }
   hideAvailabilityNote(nocInfraAvailabilityEl);
   clearTbody(nocInfraContainerBodyEl);
-  // Handle multiple data shapes: {data}, {data: {result}}, {containers}, {result: {containers}}
-  var d = (result.data || {});
-  if (d.containers) { /* direct */ }
-  else if (d.result && d.result.containers) { d = d.result; }
-  else if (result.result && result.result.containers) { d = result.result; }
-  else if (result.containers) { d = result; }
-  var containers = d.containers || [];
+  const containers = (result.data && result.data.containers) || [];
   for (const c of containers) {
     appendRow(nocInfraContainerBodyEl, [c.name || "?", c.cpu || "—", c.mem || "—", c.netIO || "—", c.status || "—"]);
   }
@@ -1415,7 +1402,7 @@ function renderPrometheus(result) {
   }
 }
 
-const SOURCE_NAMES = ["opsHealth", "activity", "combat", "resources", "economy", "inventory", "location", "soc", "prometheus", "containerHealth"];
+const SOURCE_NAMES = ["opsHealth", "activity", "combat", "resources", "economy", "inventory", "location", "soc", "prometheus"];
 
 // Promise.allSettled's rejection branch previously collapsed to a bare `{}`
 // (F-1/F-4's root cause for this call site): a rejected getXxx() call (e.g.
@@ -1450,12 +1437,11 @@ async function refreshAll() {
       _activeProvider.getInventory ? _activeProvider.getInventory() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null)),
       _activeProvider.getLocation ? _activeProvider.getLocation() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null)),
       _activeProvider.getSoc ? _activeProvider.getSoc() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null)),
-      _activeProvider.getPrometheusHealth ? _activeProvider.getPrometheusHealth() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null)),
-      _activeProvider.getContainerHealth ? _activeProvider.getContainerHealth() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null))
+      _activeProvider.getPrometheusHealth ? _activeProvider.getPrometheusHealth() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null))
     ]);
 
     const sourceResults = results.map(settledToSourceResult);
-    const [opsHealth, activity, combat, resources, economy, inventory, location, soc, prometheus, containerHealth] = sourceResults;
+    const [opsHealth, activity, combat, resources, economy, inventory, location, soc, prometheus] = sourceResults;
 
     // Populate _tabCache so tab switches don't re-fetch data already loaded
     var cacheAt = Date.now();

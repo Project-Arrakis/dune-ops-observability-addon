@@ -37,10 +37,6 @@
     "ops.health.prometheus"
   ];
 
-  const OPS_CONTAINER_HEALTH_ACTIONS = [
-    "ops.health.containers"
-  ];
-
   const samplePrometheusHealth = {
     healthy: true,
     targets: { active: 6, inactive: 0, pending: 0, total: 6 },
@@ -68,8 +64,7 @@
     OPS_INVENTORY_ACTIONS,
     OPS_LOCATION_ACTIONS,
     OPS_SOC_ACTIONS,
-    OPS_PROMETHEUS_ACTIONS,
-    OPS_CONTAINER_HEALTH_ACTIONS
+    OPS_PROMETHEUS_ACTIONS
   );
 
   const sampleOpsHealth = {
@@ -431,9 +426,6 @@
       },
       async getPrometheusHealth() {
         return fetchLiveOrUnavailable("ops.health.prometheus");
-      },
-      async getContainerHealth() {
-        return fetchLiveOrUnavailable("ops.health.containers");
       }
     }
   };
