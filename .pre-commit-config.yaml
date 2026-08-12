@@ -85,6 +85,13 @@ repos:
         pass_filenames: false
         files: ^(web/data-providers\.js|README\.md)$
 
+      - id: sri-integrity
+        name: SRI integrity check (web/index.html vs. real script content)
+        entry: node scripts/check-sri-integrity.js
+        language: system
+        pass_filenames: false
+        files: ^(web/index\.html|web/addon\.js|web/data-providers\.js|web/faction-tagger\.js|web/dune-addon-bridge\.js|web/addon\.css)$
+
       - id: unit-tests
         name: Unit tests (node --test)
         entry: npm test

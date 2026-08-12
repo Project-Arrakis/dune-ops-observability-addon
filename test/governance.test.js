@@ -11,6 +11,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
 const CHECKER = join(ROOT, "scripts", "check-bridge-action-drift.js");
 const VERSION_CHECKER = join(ROOT, "scripts", "check-version-consistency.js");
+const SRI_CHECKER = join(ROOT, "scripts", "check-sri-integrity.js");
 
 // These tests exercise the checker itself against disposable fixture
 // repos, per docs/prompts/PHASE-4-GOVERNANCE-AUTOMATION.md's own
@@ -250,4 +251,76 @@ test("version checker detects index.html drifting from addon.json/package.json",
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+// ── SRI integrity (GitHub issue #119) ──
+//
+// These tests exercise the checker itself against disposable fixture
+// repos, same discipline as the bridge-action drift checker above --
+// they must fail if web/index.html's declared SRI hash for a script
+// ever stops matching that script's real, current content. This is
+// exactly the class of bug that shipped a completely non-functional
+// addon for 9 commits (6c792e9..22ad998) before being caught by a real
+// operator report rather than CI -- see issue #119 for the full
+// incident writeup.
+
+const { checkSriIntegrity } = await import(SRI_CHECKER);
+
+function makeSriFixture({ scriptContent, declaredHash, scriptFilename = "addon.js" }) {
+  const dir = mkdtempSync(join(tmpdir(), "sri-governance-test-"));
+  const webDir = join(dir, "web");
+  execFileSync("mkdir", ["-p", webDir]);
+  writeFileSync(join(webDir, scriptFilename), scriptContent, "utf8");
+  // scriptFilename is never externally controlled: every call site in
+  // this file passes a hardcoded string literal ("addon.js" by default,
+  // or an inline literal in a specific test) -- never a parameter
+  // derived from CLI args, env vars, or network/user input. This is a
+  // disposable test fixture written to a fs.mkdtempSync() directory and
+  // deleted at the end of each test, not real served content.
+  writeFileSync(
+    join(webDir, "index.html"), // nosemgrep: javascript.lang.security.audit.unknown-value-with-script-tag.unknown-value-with-script-tag
+    `<!doctype html><html><body>\n<script src="${scriptFilename}?v=123" integrity="sha384-${declaredHash}"></script>\n</body></html>`,
+    "utf8"
+  );
+  return dir;
+}
+
+test("SRI checker passes when declared hash matches the script's real content", async () => {
+  const { createHash } = await import("node:crypto");
+  const content = "console.log('hello');";
+  const realHash = createHash("sha384").update(content).digest("base64");
+  const dir = makeSriFixture({ scriptContent: content, declaredHash: realHash });
+  try {
+    const { mismatches } = checkSriIntegrity(dir);
+    assert.deepEqual(mismatches, [], "a correctly-hashed script must produce no mismatches");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("SRI checker detects a script whose content changed after the hash was declared", () => {
+  // Simulates exactly what happened in issue #119: the script content
+  // was edited but web/index.html's integrity attribute was not
+  // regenerated, so it still declares the OLD content's hash.
+  const dir = makeSriFixture({
+    scriptContent: "console.log('edited content');",
+    declaredHash: "thisIsAStaleHashFromBeforeTheEdit==",
+  });
+  try {
+    const { mismatches } = checkSriIntegrity(dir);
+    assert.equal(mismatches.length, 1, "a stale hash must be flagged as a mismatch");
+    assert.equal(mismatches[0].file, "addon.js");
+    assert.equal(mismatches[0].declaredHash, "thisIsAStaleHashFromBeforeTheEdit==");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("SRI checker's REAL invocation passes against this repo's actual current web/index.html and its referenced scripts", () => {
+  const result = runChecker(ROOT, SRI_CHECKER);
+  assert.equal(
+    result.code,
+    0,
+    `expected the real repo's web/index.html SRI hashes to already match their scripts' real content; got:\n${result.out}`
+  );
 });
