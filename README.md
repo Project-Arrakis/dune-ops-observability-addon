@@ -96,6 +96,7 @@ Current bridge-backed actions (as called by `web/data-providers.js`, verified ag
 | `ops.location.activity` | Not implemented — addon calls it optimistically; provider returns `{status: "unavailable"}` | Location |
 | `ops.soc.summary` | Live | SOC |
 | `ops.health.prometheus` | Live, conditionally — real integration against this project's optional, opt-in Prometheus stack (`dune metrics start`); returns `{status: "unavailable", reason: "metrics_stack_not_running"}` when that stack isn't running (the common/default case), which the addon surfaces with a specific "not running" message distinct from "not implemented" | Prometheus/Metrics |
+| `ops.health.containers` | Live, with known limitations — real `docker stats`/`docker ps` integration, scoped to this deployment's own Compose project (fix for two real defects tracked in Core's issue #240/PR #244, not yet merged to Core's `main` as of this writing). Only ever returns Compose-managed containers (this project's own console + optional metrics stack); the actual game-server containers (survival server, director, RabbitMQ, etc.) are launched outside Compose and are currently invisible to this action entirely — tracked in Core's issue #246 | Infra |
 
 `leadership.players.list` (used under the earlier `players:read` permission model, before the v0.3.0 upgrade to `ops:read`) is no longer called by any shipped panel and has been removed from this list; see `docs/METRICS-BRIDGE-ACTIONS.md` and the RFC history in `docs/RFC.md` for that migration's context.
 
