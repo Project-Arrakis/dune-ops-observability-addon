@@ -58,7 +58,13 @@ if (manifest.permissions) {
 // (incorrectly) reported as missing.
 if (manifest.entry && manifest.entry.path && fs.existsSync(manifest.entry.path)) {
   const html = fs.readFileSync(manifest.entry.path, 'utf8');
-  const scriptMatches = html.matchAll(/src="([^"]+)"/g);
+  // Match only actual <script src="..."> tags, not any element with a
+  // src-like attribute (e.g. <iframe data-src="http://..."> for lazily-
+  // loaded, cross-origin Grafana embeds — those are never local files and
+  // must not be checked for local existence). A previous, broader
+  // /src="([^"]+)"/ regex incorrectly matched the "src=" substring inside
+  // "data-src=", reporting Grafana dashboard URLs as missing local scripts.
+  const scriptMatches = html.matchAll(/<script[^>]+\bsrc="([^"]+)"/g);
   for (const [, src] of scriptMatches) {
     const srcPath = src.split('?')[0];
     const fullPath = path.join(path.dirname(manifest.entry.path), srcPath);
