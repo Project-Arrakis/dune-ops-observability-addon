@@ -56,9 +56,23 @@ if (manifest.permissions) {
 // asset reference, not part of the filename on disk — strip them before
 // checking existence, or every asset with a version query string will be
 // (incorrectly) reported as missing.
+//
+// The negative lookbehind `(?<![-\w])` requires the match to NOT be
+// immediately preceded by a hyphen or word character — this excludes
+// `data-src="..."` (used by the Grafana tab's deferred-iframe-loading
+// mixed-content fix, see commit bc3ca9c) while still matching a real
+// `src="..."` attribute preceded by whitespace or a `<tag ` opener. A
+// naive `/src="([^"]+)"/g` (this check's original pattern) has no such
+// boundary and incorrectly matches the trailing "-src" of "data-src",
+// which broke this validator against every commit after bc3ca9c: it
+// tried to resolve the Grafana iframe's external
+// `http://localhost:3000/...` URL as a local file path and failed. Only
+// local script/iframe `src` attributes are validated here; `data-src`
+// deliberately holds an external, JS-populated URL that this manifest
+// validator has no way to verify (and shouldn't try to).
 if (manifest.entry && manifest.entry.path && fs.existsSync(manifest.entry.path)) {
   const html = fs.readFileSync(manifest.entry.path, 'utf8');
-  const scriptMatches = html.matchAll(/src="([^"]+)"/g);
+  const scriptMatches = html.matchAll(/(?<![-\w])src="([^"]+)"/g);
   for (const [, src] of scriptMatches) {
     const srcPath = src.split('?')[0];
     const fullPath = path.join(path.dirname(manifest.entry.path), srcPath);
