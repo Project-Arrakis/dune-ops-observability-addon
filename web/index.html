@@ -18,7 +18,7 @@
     does not govern.
   -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'; font-src 'self'; connect-src 'none'; frame-src 'self' http://localhost:3000; frame-ancestors 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; require-trusted-types-for 'script'">
-  <link rel="stylesheet" href="addon.css?v=1786173878">
+  <link rel="stylesheet" href="addon.css?v=1786848228">
 </head>
 <body>
   <main>
@@ -50,7 +50,7 @@
       <button class="tab" data-tab="location">Location</button>
       <button class="tab" data-tab="soc">SOC</button>
       <button class="tab infra-tab" data-tab="aaa" title="Requires Core R3 — Authentication & Authorization metrics">AAA</button>
-      <button class="tab infra-tab" data-tab="noc-infra" title="Requires Core R3 — Infrastructure deep-dive metrics">NOC Infra</button>
+      <button class="tab infra-tab" data-tab="noc-infra" title="Pending a Core-side security fix + design change — see issue #93">NOC Infra</button>
       <button class="tab infra-tab" data-tab="audit" title="Requires Core R3 — Audit & compliance log">Audit</button>
       <button class="tab" data-tab="grafana">Grafana</button>
       <button class="tab" data-tab="diag">Diag</button>
@@ -707,7 +707,19 @@
       </section>
     </div><!-- /tab:aaa -->
 
-    <!-- TAB: NOC Infra — live container health via ops.health.containers bridge -->
+    <!-- TAB: NOC Infra — placeholder pending a safe, scoped container-health
+         re-enablement. A prior live implementation (ops.health.containers)
+         was reverted (commit 22ad998) after it depended on a Core-side
+         function with an unscoped, blocking `docker stats` call (a real
+         security/reliability defect, tracked upstream on
+         dune-awakening-selfhost-docker branch
+         fix/240-container-health-async-scoped, not yet merged as of this
+         placeholder). Do not re-wire this tab to ops.health.containers
+         until that fix lands AND the re-enablement follows the design in
+         compliance/eight-hats-findings-register-2026-08-16.md (container
+         health belongs inside a rebuilt NOC Overview, using the Spice
+         Melange per-instance card pattern, not this standalone table) --
+         see issue #93. -->
     <div class="tab-content" data-tab="noc-infra">
       <section class="card">
         <div class="section-heading">
@@ -715,16 +727,10 @@
             <p class="eyebrow">Docker Container Stats</p>
             <h2>NOC Infrastructure</h2>
           </div>
-          <p class="provider-label">Live · ops.health.containers</p>
+          <p class="provider-label">Planned · pending safe re-enablement</p>
         </div>
-        <p class="section-copy">Per-container CPU, memory, network I/O, and status — read from <code>docker stats</code> via the console bridge. All 18 containers are shown. Time-series metrics (Grafana) cover the 6 infrastructure services with Prometheus exporters.</p>
-        <div id="noc-infra-availability-note" class="availability-note" hidden></div>
-        <div class="table-wrap">
-          <table aria-label="Container health">
-            <thead><tr><th scope="col">Container</th><th scope="col">CPU</th><th scope="col">Memory</th><th scope="col">Network I/O</th><th scope="col">Status</th></tr></thead>
-            <tbody id="noc-infra-container-body"></tbody>
-          </table>
-        </div>
+        <p class="section-copy">Per-container CPU, memory, network I/O, and status. A prior live version of this tab was reverted after its backing Core function was found to have an unscoped, blocking <code>docker stats</code> call (security/reliability defect). This tab will return once that fix is merged upstream and the re-enablement follows the current design (container health inside a rebuilt NOC Overview, not a standalone tab) — see issue #93.</p>
+        <div class="availability-note" style="border-left-color:var(--faction-color)">Planned — pending a Core-side fix (unscoped/blocking docker stats call) and a design change (folding container health into NOC Overview). Tracked as issue #93.</div>
       </section>
     </div><!-- /tab:noc-infra -->
 
@@ -828,9 +834,9 @@
     </div><!-- /tab:diag -->
 
   </main>
-  <script src="faction-tagger.js?v=1786173878" integrity="sha384-ujc13Q/OEK7Rv2Q8kKgmnXVHIVSxWfZu9b21wuUakbGLC3ZYZpYrzPaU0aEmmGju"></script>
-  <script src="dune-addon-bridge.js?v=1786173878" integrity="sha384-X5CCvWUGvhbKTqZupV/KvEjGaEP8kenHCuLvdxeYfI/83L57CDK6uAB7XNdF/eMO"></script>
-  <script src="data-providers.js?v=1786173878" integrity="sha384-viXLKa5Urw31cxI0aY9C/yiGYikroVsg5MLKmve71ol5MSG1Qqa80/4zRqI77LHc"></script>
-  <script src="addon.js?v=1786173878" integrity="sha384-6nd/KmpEJyQt0N9i26a4GlcNUZy3ecf7ia1HHm/YOL2vgn4DfRKLIWITqXyHRT1S"></script>
+  <script src="faction-tagger.js?v=1786848228" integrity="sha384-ujc13Q/OEK7Rv2Q8kKgmnXVHIVSxWfZu9b21wuUakbGLC3ZYZpYrzPaU0aEmmGju"></script>
+  <script src="dune-addon-bridge.js?v=1786848228" integrity="sha384-X5CCvWUGvhbKTqZupV/KvEjGaEP8kenHCuLvdxeYfI/83L57CDK6uAB7XNdF/eMO"></script>
+  <script src="data-providers.js?v=1786848228" integrity="sha384-viXLKa5Urw31cxI0aY9C/yiGYikroVsg5MLKmve71ol5MSG1Qqa80/4zRqI77LHc"></script>
+  <script src="addon.js?v=1786848228" integrity="sha384-lHXa2vplZdZVd8b04yF4UJn7weOtnR9UT2GtzaMKrzQ2rGtQ/aELXFGWac29bsAG"></script>
 </body>
 </html>

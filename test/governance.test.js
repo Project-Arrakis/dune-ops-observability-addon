@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, writeFileSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -11,6 +11,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
 const CHECKER = join(ROOT, "scripts", "check-bridge-action-drift.js");
 const VERSION_CHECKER = join(ROOT, "scripts", "check-version-consistency.js");
+const VALIDATE_SCRIPT = join(ROOT, "scripts", "validate.js");
 
 // These tests exercise the checker itself against disposable fixture
 // repos, per docs/prompts/PHASE-4-GOVERNANCE-AUTOMATION.md's own
@@ -189,6 +190,9 @@ test("drift checker throws a clear error if README's bridge-action section is mi
 const { extractVersions, checkMutualConsistency } = await import(
   VERSION_CHECKER
 );
+const { updateSriHashes, sha384Base64 } = await import(
+  join(ROOT, "scripts", "update-sri-hashes.js")
+);
 
 test("version checker passes when addon.json, package.json, and index.html all agree", () => {
   const dir = makeFixture({
@@ -249,5 +253,136 @@ test("version checker detects index.html drifting from addon.json/package.json",
     assert.match(errors[0], /1\.0\.0/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// --- SRI hash drift + <script src> vs data-src regression tests -----------
+// (issue #119, issue #122). Both bugs together let 9 commits
+// (6c792e9..22ad998) ship a completely non-functional addon undetected --
+// these tests exist so neither class of bug can silently regress.
+
+function makeValidateFixture({ scriptContent = "console.log('hi');", integrity, includeGrafanaDataSrc = false } = {}) {
+  const dir = mkdtempSync(join(tmpdir(), "validate-test-"));
+  const webDir = join(dir, "web");
+  execFileSync("mkdir", ["-p", webDir]);
+  writeFileSync(join(webDir, "foo.js"), scriptContent, "utf8");
+  writeFileSync(
+    join(dir, "addon.json"),
+    JSON.stringify({
+      schemaVersion: 1,
+      id: "test-addon",
+      name: "Test",
+      description: "test",
+      author: "test",
+      version: "1.0.0",
+      type: "ui",
+      entry: { navigation: "Test", path: "web/index.html" },
+      permissions: { ops: ["read"] },
+    }),
+    "utf8"
+  );
+  const integrityAttr = integrity ? ` integrity="${integrity}"` : "";
+  const grafanaDataSrc = includeGrafanaDataSrc
+    ? `<img class="grafana-embed" data-src="http://localhost:3000/d-solo/test-dashboard?orgId=1" />`
+    : "";
+  // webDir is always mkdtempSync-generated above, never externally
+  // controlled -- not a real XSS/script-tag-injection sink (same
+  // rationale already established for the identical pattern in
+  // makeFixture(), above).
+  writeFileSync(
+    join(webDir, "index.html"), // nosemgrep
+    `<!DOCTYPE html><html><body>v1.0.0\n${grafanaDataSrc}\n<script src="foo.js"${integrityAttr}></script>\n</body></html>`,
+    "utf8"
+  );
+  return dir;
+}
+
+function runValidate(fixtureDir) {
+  try {
+    const out = execFileSync("node", [VALIDATE_SCRIPT], {
+      cwd: fixtureDir,
+      encoding: "utf8",
+    });
+    return { code: 0, out };
+  } catch (err) {
+    return { code: err.status, out: (err.stdout || "") + (err.stderr || "") };
+  }
+}
+
+test("validate.js's REAL invocation passes against this repo's actual current web/index.html (SRI hashes genuinely up to date)", () => {
+  const result = runChecker(ROOT, VALIDATE_SCRIPT);
+  assert.equal(
+    result.code,
+    0,
+    `expected the real repo's SRI hashes to already be correct; got:\n${result.out}`
+  );
+});
+
+test("validate.js detects SRI hash drift (issue #119 regression test)", () => {
+  const dir = makeValidateFixture({ integrity: "sha384-DELIBERATELY-WRONG-HASH" });
+  try {
+    const realHash = sha384Base64(join(dir, "web", "foo.js"));
+    const result = runValidate(dir);
+    assert.equal(result.code, 1, "a mismatched SRI hash must fail validation");
+    assert.match(result.out, /SRI hash drift/);
+    assert.match(result.out, new RegExp(realHash.replace(/[+/]/g, "\\$&")));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("validate.js passes when SRI hash genuinely matches the real file content", () => {
+  // Two-step: write the fixture once to learn the real hash of its own
+  // script content, then rebuild it with that exact hash declared --
+  // avoids hardcoding a hash literal that would silently stop being a
+  // real test of "matches" the moment scriptContent's default changes.
+  const probeDir = makeValidateFixture();
+  const realHash = sha384Base64(join(probeDir, "web", "foo.js"));
+  rmSync(probeDir, { recursive: true, force: true });
+
+  const dir = makeValidateFixture({ integrity: realHash });
+  try {
+    const result = runValidate(dir);
+    assert.equal(result.code, 0, `expected a correct SRI hash to pass; got:\n${result.out}`);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("validate.js does not mistake a Grafana data-src attribute for a missing local script (issue #122 regression test)", () => {
+  const probeDir = makeValidateFixture();
+  const realHash = sha384Base64(join(probeDir, "web", "foo.js"));
+  rmSync(probeDir, { recursive: true, force: true });
+
+  const dir = makeValidateFixture({ integrity: realHash, includeGrafanaDataSrc: true });
+  try {
+    const result = runValidate(dir);
+    assert.equal(
+      result.code,
+      0,
+      `a data-src attribute pointing at an external http:// URL must not be treated as a missing local script; got:\n${result.out}`
+    );
+    assert.doesNotMatch(result.out, /does not exist/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("update-sri-hashes.js's REAL invocation is a no-op against this repo's actual current web/index.html", () => {
+  // Confirms the real file is already fully up to date -- running the
+  // updater again must report zero changes, not silently rewrite
+  // something. Restores the file from its pre-test content afterward
+  // in case the assertion itself is ever wrong (defense in depth --
+  // updateSriHashes should already no-op when nothing changed).
+  const realIndexHtml = join(ROOT, "web", "index.html");
+  const before = readFileSync(realIndexHtml, "utf8");
+  try {
+    const updates = updateSriHashes(realIndexHtml);
+    assert.deepEqual(updates, [], "expected zero SRI updates needed against the real, already-correct repo state");
+  } finally {
+    const after = readFileSync(realIndexHtml, "utf8");
+    if (after !== before) {
+      writeFileSync(realIndexHtml, before, "utf8");
+    }
   }
 });

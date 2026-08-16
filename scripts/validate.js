@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { sha384Base64 } = require('./update-sri-hashes.js');
 
 let errors = 0;
 function check(cond, msg) {
@@ -58,11 +59,38 @@ if (manifest.permissions) {
 // (incorrectly) reported as missing.
 if (manifest.entry && manifest.entry.path && fs.existsSync(manifest.entry.path)) {
   const html = fs.readFileSync(manifest.entry.path, 'utf8');
-  const scriptMatches = html.matchAll(/src="([^"]+)"/g);
-  for (const [, src] of scriptMatches) {
+  // Scoped to actual `<script ... src="...">` tags only — a bare
+  // `src="([^"]+)"` regex also matches `data-src="..."` (used by the
+  // Grafana tab's lazy-loaded iframes, which intentionally point at an
+  // external http://localhost:3000 URL, not a local file) and would
+  // incorrectly report those external URLs as missing local scripts.
+  // Confirmed via direct reproduction (issue #122) before this fix.
+  const scriptTags = html.matchAll(/<script\b[^>]*\bsrc="([^"]+)"[^>]*>/g);
+  for (const [fullTag, src] of scriptTags) {
     const srcPath = src.split('?')[0];
     const fullPath = path.join(path.dirname(manifest.entry.path), srcPath);
     check(fs.existsSync(fullPath), `referenced script "${src}" does not exist`);
+
+    // SRI drift check (issue #119): recompute the real, current file's
+    // SHA-384 and compare it against index.html's own declared
+    // integrity= attribute -- a mechanical, deterministic check with
+    // zero false-positive risk, closing the exact gap that let 9
+    // commits (6c792e9..22ad998) silently ship a non-functional addon
+    // (a browser's SRI check refuses to execute a mismatched script,
+    // with no visible error to a typical operator).
+    if (fs.existsSync(fullPath)) {
+      const integrityMatch = fullTag.match(/integrity="(sha384-[^"]+)"/);
+      if (integrityMatch) {
+        const declaredHash = integrityMatch[1];
+        const actualHash = sha384Base64(fullPath);
+        check(
+          declaredHash === actualHash,
+          `SRI hash drift: ${src} declares "${declaredHash}" but its real content hashes to "${actualHash}". Run "node scripts/update-sri-hashes.js" to fix.`
+        );
+      } else {
+        check(false, `${src} has no integrity= attribute -- every local script must carry SRI (run "node scripts/update-sri-hashes.js" to add one).`);
+      }
+    }
   }
 }
 
