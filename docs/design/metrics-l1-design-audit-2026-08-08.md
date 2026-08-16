@@ -1,8 +1,24 @@
 # AAA / NOC / SOC Metrics Architecture — L1 Design Audit
 
-**Date:** 2026-08-08 | **Repo:** dune-ops-observability-addon  
-**Requirement 20, Layer 1:** Design audit before implementation  
-**Status:** Design complete, awaiting Layer 2 implementation audits per phase
+**Date:** 2026-08-08 | **Repo:** dune-ops-observability-addon
+**Requirement 20, Layer 1:** Design audit before implementation
+**Status:** **SUPERSEDED 2026-08-16.** This plan's 11→14 tab expansion
+(permanently adding AAA/NOC-Infra/Audit to primary navigation ahead of
+the Phase 1/Core R3 work they depend on) is superseded by a narrower
+scope-reduction recommendation — see
+`compliance/eight-hats-findings-register-2026-08-16.md`, Finding M-5
+and its accompanying "Recommendation" section, for the full rationale
+and the explicit maintainer decision. In short: Phase 1 (Core R3) never
+started, Phase 0 shipped its 3 placeholder tabs anyway, and a later,
+unplanned attempt to deliver Phase 3's content early (`containerHealth`,
+see the same register's Finding C-2) caused a real incident (8 hotfix
+commits, an incomplete revert, and an addon that was non-functional on
+`main` for 6+ days). This document is retained for historical record —
+the metric-gap analysis in
+`compliance/eight-hats-findings-register.md` (2026-08-07) remains
+accurate and useful; the specific 6-phase/14-tab execution plan below
+does not reflect current direction and must not be used as a work plan
+without first re-reading the 2026-08-16 register in full.
 
 ## Current State
 
@@ -20,7 +36,7 @@
 
 ```
 PATH A (snapshot):  Core Bridge → addon JS        → addon panels
-PATH B (gauges):    Prometheus    → Core R3 query  → addon live gauges  
+PATH B (gauges):    Prometheus    → Core R3 query  → addon live gauges
 PATH C (time-series):  Prometheus → Grafana        → addon Grafana tab (existing)
 ```
 

@@ -24,6 +24,9 @@ repos, not duplicated here.
 
 ## Audit Trail
 
-- Eight-hats findings register: `compliance/eight-hats-findings-register.md`
+- Eight-hats findings register (2026-08-07, v0.4.7): `compliance/eight-hats-findings-register.md`
+- Eight-hats findings register (2026-08-16, containerHealth/scope review): `compliance/eight-hats-findings-register-2026-08-16.md`
 - Release evidence bundles: `ops-observability/evidence/releases/`
-- Incident index (cross-repo): `~/archive/INCIDENT-INDEX.md`
+- Incident index (cross-repo): `~/projects/meta/Arrakis-Project/archive/INCIDENT-INDEX.md`
+  (path corrected 2026-08-12 per that repo's own README -- this file
+  previously pointed at a bare `~/archive/` path that no longer exists)

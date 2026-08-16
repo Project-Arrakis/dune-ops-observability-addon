@@ -27,6 +27,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   57/57. Finished the revert: `noc-infra` is back to its original Phase 0
   "Planned — requires Core R3" placeholder state in code, markup, and
   provider wiring. See GitHub issue #120.
+- **`pre-commit` had been red on every push to `main`** since before
+  either of the above two fixes existed, for reasons entirely unrelated
+  to them (a `trailing-whitespace` hook stripping intentional Markdown
+  hard-breaks, and a genuine extra trailing newline in `web/addon.css`) —
+  meaning the required `pre-commit` CI check had provided zero real
+  signal for some time. See GitHub issue #123.
+- **Root cause of the original `containerHealth` breakage, established
+  2026-08-16**: not a defect in this addon at all — a one-line logic
+  error in `dune-awakening-selfhost-docker`'s bridge-route dispatcher
+  (missing `if (`, commit `7ea2011f` in that repo) caused an
+  action-fallthrough bug where unmatched bridge actions silently
+  returned container-health data instead of their own. That bug was
+  fixed upstream before this repo's own revert landed, unnoticed. Full
+  incident detail: `compliance/eight-hats-findings-register-2026-08-16.md`.
+- **Corrected a stale, inaccurate claim in the `[0.5.1]` entry below.**
+  "All 57 tests pass. No regressions." was true when written (2026-08-08,
+  before the `containerHealth` feature branch merged later that same
+  day) but had been false since (`npm test` reported 56/57 until the
+  fix above). Per this project's own documentation-currency discipline,
+  corrected here rather than silently left stale. The `containerHealth`
+  feature itself was also merged directly to `main` with no PR (branch
+  protection does not cover repo-admin pushes, tracked as issue #85).
+- `docs/design/metrics-l1-design-audit-2026-08-08.md`'s 11→14-tab
+  expansion plan (AAA/NOC Infra/Audit tabs) is formally superseded by a
+  narrower scope-reduction recommendation — see the same findings
+  register above for the full rationale.
 
 ### Added
 - `scripts/check-sri-integrity.js` — governance check (wired into
@@ -39,6 +65,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `scripts/update-sri.js` — regenerates `web/index.html`'s SRI hashes and
   cache-buster query strings from the real, current content of every
   referenced script, so these never need to be computed by hand again.
+- `compliance/eight-hats-findings-register-2026-08-16.md` — full findings
+  from a 2026-08-16 Eight Hats scope/UX review (3 Critical, 6 High, 5
+  Medium), prompted by a "world-class metrics board" feature request.
 
 ## [0.5.1] - 2026-08-10
 
@@ -67,7 +96,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Bridge-action drift check** added to pre-commit hooks.
 
 ### Changed
-- All 57 tests pass. No regressions.
+- All 57 tests pass. No regressions. **(True as of this entry's own
+  commit only — see the `[Unreleased]` entry above: this stopped being
+  true later the same day and was not corrected until 2026-08-16.)**
 - **Complete in-game Dune Awakening aesthetic redesign (v0.5).** Sand-toned
   elevation surface system, warm amber/bronze default palette (replacing purple),
   game-style tab navigation with accent underlines, metric card glow effects,
