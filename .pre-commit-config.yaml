@@ -9,6 +9,14 @@ repos:
         args: ["--fix=lf"]
       - id: end-of-file-fixer
       - id: trailing-whitespace
+        # Several docs intentionally use the standard Markdown
+        # hard-break convention (two trailing spaces to force a <br>,
+        # e.g. docs/design/metrics-l1-design-audit-2026-08-08.md).
+        # Without this arg, the hook strips those spaces and reports
+        # "files were modified" -> non-zero exit -> a permanently red
+        # required check on every push, regardless of what a given
+        # commit actually changed (issue #123).
+        args: ["--markdown-linebreak-ext=md"]
 
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.30.1
