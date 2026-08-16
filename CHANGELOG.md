@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **`enforce_admins` was `false` on `main`'s branch protection, meaning
+  required status checks did not actually apply to admin/owner direct
+  pushes.** `docs/BRANCH-PROTECTION.md`/`docs/GITHUB-RULESETS.md`
+  previously and incorrectly claimed "direct pushes remain possible for
+  the maintainer, gated only by required status checks" — per GitHub's
+  own documentation, admin permissions bypass ALL branch protection
+  restrictions, including required status checks, unless
+  `enforce_admins` is explicitly enabled. This is exactly how the
+  `containerHealth` revert commit (`22ad998`, below) landed on `main`
+  while failing 4 of 7 required checks. Both docs corrected;
+  `enforce_admins` flipped to `true` on this repo and, since the same
+  misconfiguration was independently confirmed on this account's other
+  three repos, on `acp-landing`, `Arrakis-Control-Panel`, and
+  `dune-awakening-selfhost-docker` as well. See issue #85.
 - **Critical: addon was completely non-functional due to stale Subresource
   Integrity (SRI) hashes.** `web/index.html`'s `<script integrity="sha384-...">`
   attributes for `data-providers.js` and `addon.js` had drifted from those

@@ -23,6 +23,16 @@ size" in `docs/BRANCH-PROTECTION.md`).
 Neither route may complete until required status checks pass. Force pushes
 and branch deletion are blocked regardless of route.
 
+**This requires `enforce_admins`/"do not allow bypassing the above
+settings" to be enabled** (see `docs/BRANCH-PROTECTION.md`'s
+2026-08-16 correction) — without it, a repository admin's pushes
+(the maintainer, on a single-maintainer repo) bypass required status
+checks entirely, silently defeating "neither route may complete until
+required status checks pass" above. Confirmed as a real, not
+theoretical, gap: the `containerHealth` revert commit landed on `main`
+while failing 4 of 7 required checks, with `enforce_admins: false` at
+the time.
+
 ## Recommended Ruleset
 
 Create a repository ruleset named:
