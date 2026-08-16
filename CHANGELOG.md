@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- **Critical: addon was completely non-functional due to stale Subresource
+  Integrity (SRI) hashes.** `web/index.html`'s `<script integrity="sha384-...">`
+  attributes for `data-providers.js` and `addon.js` had drifted from those
+  files' real content across 9 commits (the `containerHealth`/NOC-Infra
+  feature branch and its subsequent revert), starting immediately after
+  the last correct SRI regeneration in `43f50b1`. Because SRI failures are
+  enforced silently by the browser (no console error visible to a typical
+  operator, the script simply never executes), this left every tab
+  unresponsive and no data provider loaded, for every operator who
+  installed the addon in this state. See GitHub issue #119 for the full
+  root-cause writeup.
+- **Incomplete revert of the `containerHealth`/NOC Infra feature.** Commit
+  `22ad998` ("revert: remove containerHealth feature — broken tabs") left
+  `getContainerHealth()` live in `web/data-providers.js` and the NOC Infra
+  tab's live-data markup in `web/index.html`, causing `npm test` to report
+  56/57 (a README/bridge-action-drift failure) instead of the claimed
+  57/57. Finished the revert: `noc-infra` is back to its original Phase 0
+  "Planned — requires Core R3" placeholder state in code, markup, and
+  provider wiring. See GitHub issue #120.
+
+### Added
+- `scripts/check-sri-integrity.js` — governance check (wired into
+  `npm test` via `test/governance.test.js`, CI, and pre-commit) that fails
+  if any `<script integrity="sha384-...">` hash in `web/index.html` ever
+  stops matching the real, current content of the file it references.
+  Same drift-detection discipline already used for the README/bridge-action
+  and version-consistency checkers, applied to SRI hashes specifically
+  because hand-maintaining them is what caused this incident.
+- `scripts/update-sri.js` — regenerates `web/index.html`'s SRI hashes and
+  cache-buster query strings from the real, current content of every
+  referenced script, so these never need to be computed by hand again.
+
 ## [0.5.1] - 2026-08-10
 
 ### Added (2026-08-08)

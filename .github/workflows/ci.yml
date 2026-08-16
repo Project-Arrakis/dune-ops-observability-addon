@@ -66,6 +66,7 @@ jobs:
       - run: node scripts/validate.js
       - run: node scripts/check-bridge-action-drift.js
       - run: node scripts/check-version-consistency.js
+      - run: node scripts/check-sri-integrity.js
       - run: npm test
 
   security:

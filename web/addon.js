@@ -30,7 +30,7 @@ var _tabProviders = {
   diag:     [],
   // Phase 0 placeholder tabs — will dispatch real providers when Core R3 lands
   aaa:      [],
-  "noc-infra": ["containerHealth"],
+  "noc-infra": [],
   audit:    []
 };
 
@@ -45,8 +45,7 @@ function _providerMethod(source) {
     inventory: "getInventory",
     location: "getLocation",
     soc: "getSoc",
-    prometheus: "getPrometheusHealth",
-    containerHealth: "getContainerHealth"
+    prometheus: "getPrometheusHealth"
   };
   return map[source];
 }
@@ -122,10 +121,6 @@ function _renderTabData(tabName, results) {
     case "economy":   renderEconomy(get("economy")); break;
     case "inventory": renderInventory(get("inventory")); break;
     case "location":  renderLocation(get("location")); break;
-    case "noc-infra":
-      var containerData = get("containerHealth");
-      if (containerData) renderContainerHealth(containerData);
-      break;
     case "soc":
       var socData = get("soc");
       var promData = get("prometheus");
@@ -1265,23 +1260,6 @@ function renderSystemServicesTable(prometheusResult) {
     if (!knownServices.includes(job)) {
       appendRow(nocSystemServiceBodyEl, [job, status]);
     }
-  }
-}
-
-function renderContainerHealth(result) {
-  if (!result || result.status === "unavailable") {
-    if (nocInfraAvailabilityEl) {
-      nocInfraAvailabilityEl.hidden = false;
-      nocInfraAvailabilityEl.textContent = unavailableMessage(result);
-    }
-    clearTbody(nocInfraContainerBodyEl);
-    return;
-  }
-  hideAvailabilityNote(nocInfraAvailabilityEl);
-  clearTbody(nocInfraContainerBodyEl);
-  const containers = (result.data && result.data.containers) || [];
-  for (const c of containers) {
-    appendRow(nocInfraContainerBodyEl, [c.name || "?", c.cpu || "—", c.mem || "—", c.netIO || "—", c.status || "—"]);
   }
 }
 
