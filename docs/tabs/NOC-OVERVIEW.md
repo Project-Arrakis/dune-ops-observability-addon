@@ -118,13 +118,26 @@ a separately computed, potentially-drifting number.
 
 ### 1.7 "Farm & Population Summary" panel
 
-Farm totals, ready/alive counts, connected players, S2S connection
-counts — real, sourced from `addonOpsHealthFarms()`'s live query. Its
-own render function was split out of the old, now-removed
-`renderNocResources()` into a dedicated `renderFarmSummary()` during
-PR 1 of the rebuild (the CPU/mem/disk/uptime half of that old function
-was the dead panel replaced by §1.5/§1.6). Unchanged behavior,
-different internal function name only.
+Farm totals, ready/alive counts — real, sourced from
+`addonOpsHealthFarms()`'s live query, unchanged. Its own render
+function was split out of the old, now-removed `renderNocResources()`
+into a dedicated `renderFarmSummary()` during PR 1 of the rebuild (the
+CPU/mem/disk/uptime half of that old function was the dead panel
+replaced by §1.5/§1.6).
+
+**Connected Players and S2S Connections were fixed 2026-08-17 (issue
+#139).** This section previously, incorrectly, claimed these two
+fields were already "real, sourced from a live query" — they were
+not: `normalizeOpsHealth()` never extracted `connectedPlayers`/
+`incomingS2SConnections`/`outgoingS2SConnections` from Core's response
+at all (a field-name casing mismatch — the addon read lowercase
+`incomingS2s`, Core returns capital-S2S `incomingS2SConnections`), so
+"Connected Players" silently displayed `totals.online` (a real, but
+different and unrelated, number) and "S2S Connections" showed a
+permanent dash on every install, indistinguishable from an honest
+absence of data. Both are now correctly wired to Core's real, live
+`addonOpsHealthFarms()` fields, with an honest dash shown only when
+Core's payload genuinely omits them (e.g. an older Core version).
 
 ---
 
