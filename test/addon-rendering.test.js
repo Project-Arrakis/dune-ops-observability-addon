@@ -1051,3 +1051,63 @@ test("the instance-count badge clears to empty when a map section has zero insta
   await flushAsync();
   assert.equal(text(window, "#dd-instance-count"), "", "must clear the stale count, not leave a prior refresh's number visible when the source becomes unavailable");
 });
+
+// ── #137: AAA/NOC Infra/Audit hidden from primary nav; Diag moved to a secondary link ──
+
+test("AAA, NOC Infra, and Audit tab buttons are hidden from primary nav (issue #137)", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, {});
+  runAddon(window);
+  await flushAsync();
+
+  for (const tab of ["aaa", "noc-infra", "audit"]) {
+    const button = window.document.querySelector(`#tab-nav .tab[data-tab="${tab}"]`);
+    assert.ok(button, `${tab} button must still exist in the DOM (its tab-content panel stays reachable if ever un-hidden)`);
+    assert.equal(button.hidden, true, `${tab} button must be hidden from primary nav`);
+  }
+});
+
+test("Diag button no longer appears in primary #tab-nav (issue #137)", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, {});
+  runAddon(window);
+  await flushAsync();
+
+  assert.equal(window.document.querySelector('#tab-nav .tab[data-tab="diag"]'), null, "Diag must not be a primary-nav tab button anymore");
+});
+
+test("the secondary Diag link still activates the real Diag tab-content panel and refreshes diagnostics output", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, {});
+  runAddon(window);
+  await flushAsync();
+
+  const diagLink = window.document.querySelector("#diag-link");
+  assert.ok(diagLink, "secondary Diag link must exist");
+
+  diagLink.dispatchEvent(new window.Event("click", { bubbles: true, cancelable: true }));
+  await flushAsync();
+
+  const diagPanel = window.document.querySelector('.tab-content[data-tab="diag"]');
+  assert.ok(diagPanel.classList.contains("active"), "clicking the secondary Diag link must activate the real Diag tab-content panel");
+  assert.ok(diagLink.classList.contains("active"), "the secondary link itself should reflect active state, same as a primary tab button would");
+
+  const otherPanels = window.document.querySelectorAll(".tab-content.active");
+  assert.equal(otherPanels.length, 1, "activating Diag via the secondary link must deactivate every other tab panel, same as the primary tab-nav behavior");
+});
+
+test("clicking a primary tab button still deactivates the secondary Diag link's active state (shared activateTab() logic)", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, {});
+  runAddon(window);
+  await flushAsync();
+
+  window.document.querySelector("#diag-link").dispatchEvent(new window.Event("click", { bubbles: true, cancelable: true }));
+  await flushAsync();
+
+  window.document.querySelector('#tab-nav .tab[data-tab="players"]').click();
+  await flushAsync();
+
+  assert.equal(window.document.querySelector("#diag-link").classList.contains("active"), false, "switching to a primary tab must clear the secondary link's active state");
+  assert.ok(window.document.querySelector('.tab-content[data-tab="players"]').classList.contains("active"));
+});

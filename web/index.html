@@ -18,7 +18,7 @@
     does not govern.
   -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'; font-src 'self'; connect-src 'none'; frame-src 'self' http://localhost:3000; frame-ancestors 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; require-trusted-types-for 'script'">
-  <link rel="stylesheet" href="addon.css?v=1786945639">
+  <link rel="stylesheet" href="addon.css?v=1786979034">
 </head>
 <body>
   <main>
@@ -49,12 +49,26 @@
       <button class="tab" data-tab="inventory">Inventory</button>
       <button class="tab" data-tab="location">Location</button>
       <button class="tab" data-tab="soc">SOC</button>
-      <button class="tab infra-tab" data-tab="aaa" title="Requires Core R3 — Authentication & Authorization metrics">AAA</button>
-      <button class="tab infra-tab" data-tab="noc-infra" title="Requires Core R3 — Infrastructure deep-dive metrics">NOC Infra</button>
-      <button class="tab infra-tab" data-tab="audit" title="Requires Core R3 — Audit & compliance log">Audit</button>
+      <!-- #137: AAA/NOC Infra/Audit hidden from primary nav -- all three
+           are permanently non-functional pending a Core R3 release with
+           no announced ETA (see compliance/eight-hats-findings-register-
+           2026-08-17.md, Finding G-1). Their tab-content panels remain in
+           the DOM, unreachable, so the ops.94/95/93 tracking issues and
+           their placeholder copy stay intact for whenever Core R3 ships;
+           only the primary-nav entry point is removed here. -->
+      <button class="tab infra-tab" data-tab="aaa" title="Requires Core R3 — Authentication & Authorization metrics" hidden>AAA</button>
+      <button class="tab infra-tab" data-tab="noc-infra" title="Requires Core R3 — Infrastructure deep-dive metrics" hidden>NOC Infra</button>
+      <button class="tab infra-tab" data-tab="audit" title="Requires Core R3 — Audit & compliance log" hidden>Audit</button>
       <button class="tab" data-tab="grafana">Grafana</button>
-      <button class="tab" data-tab="diag">Diag</button>
     </nav>
+    <!-- #137: Diag moved out of primary nav -- it is an explicit
+         dev-debugging tool ("may contain raw bridge data, do not share
+         screenshots of this tab"), not a feature an operator needs to
+         see alongside the real functional tabs on every visit. Same
+         underlying tab-content panel and activateTab() behavior as
+         every other tab; just a smaller, visually de-emphasized entry
+         point near the status banner instead of the primary tab bar. -->
+    <p class="secondary-nav"><a href="#" id="diag-link" class="secondary-tab-link" data-tab="diag">Diagnostics (dev)</a></p>
 
     <!-- TAB: Overview -->
     <div class="tab-content active" data-tab="overview">
@@ -823,9 +837,9 @@
     </div><!-- /tab:diag -->
 
   </main>
-  <script src="faction-tagger.js?v=1786945639" integrity="sha384-ujc13Q/OEK7Rv2Q8kKgmnXVHIVSxWfZu9b21wuUakbGLC3ZYZpYrzPaU0aEmmGju"></script>
-  <script src="dune-addon-bridge.js?v=1786945639" integrity="sha384-X5CCvWUGvhbKTqZupV/KvEjGaEP8kenHCuLvdxeYfI/83L57CDK6uAB7XNdF/eMO"></script>
-  <script src="data-providers.js?v=1786945639" integrity="sha384-FrDypVkkqQLbU7ojp05/Vgw/bAnsa8tsK9XJEf/0JP4jLPUGkXNvXqvH0ReL16Gz"></script>
-  <script src="addon.js?v=1786945639" integrity="sha384-DCXWy96vQDIa03Jru0NCjY+R1SToyx7oVoRTY7AlmAtWyeTsSBwEEGc1CWXdtqkY"></script>
+  <script src="faction-tagger.js?v=1786979034" integrity="sha384-ujc13Q/OEK7Rv2Q8kKgmnXVHIVSxWfZu9b21wuUakbGLC3ZYZpYrzPaU0aEmmGju"></script>
+  <script src="dune-addon-bridge.js?v=1786979034" integrity="sha384-X5CCvWUGvhbKTqZupV/KvEjGaEP8kenHCuLvdxeYfI/83L57CDK6uAB7XNdF/eMO"></script>
+  <script src="data-providers.js?v=1786979034" integrity="sha384-FrDypVkkqQLbU7ojp05/Vgw/bAnsa8tsK9XJEf/0JP4jLPUGkXNvXqvH0ReL16Gz"></script>
+  <script src="addon.js?v=1786979034" integrity="sha384-xwqjA2POAmYMMa0SV0FXHRz7r2UYSyYiAzcqCjs2bxVj8c1/gl0JNJ7M8qR4mGdN"></script>
 </body>
 </html>

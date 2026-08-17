@@ -137,18 +137,43 @@ function _renderTabData(tabName, results) {
   }
 }
 
+// #137: activateTab() is shared by every clickable "go to this tab" control
+// -- primary #tab-nav buttons AND the secondary Diag link (moved out of
+// primary nav, see initDiagLink() below) -- so both paths stay in sync
+// with exactly one tab-switching implementation instead of two
+// independently-maintained click handlers.
+function activateTab(tabName) {
+  var tabs = document.querySelectorAll("#tab-nav .tab, .secondary-tab-link");
+  var panels = document.querySelectorAll(".tab-content");
+  tabs.forEach(function (t) { t.classList.remove("active"); });
+  var activeControl = document.querySelector('[data-tab="' + tabName + '"].tab, [data-tab="' + tabName + '"].secondary-tab-link');
+  if (activeControl) activeControl.classList.add("active");
+  panels.forEach(function (p) { p.classList.remove("active"); });
+  var target = document.querySelector('.tab-content[data-tab="' + tabName + '"]');
+  if (target) target.classList.add("active");
+  _refreshTab(tabName);
+}
+
 (function initTabs() {
   var tabs = document.querySelectorAll("#tab-nav .tab");
-  var panels = document.querySelectorAll(".tab-content");
   tabs.forEach(function (tab) {
-    tab.addEventListener("click", function () {
-      tabs.forEach(function (t) { t.classList.remove("active"); });
-      tab.classList.add("active");
-      panels.forEach(function (p) { p.classList.remove("active"); });
-      var target = document.querySelector('.tab-content[data-tab="' + tab.dataset.tab + '"]');
-      if (target) target.classList.add("active");
-      _refreshTab(tab.dataset.tab);
-    });
+    tab.addEventListener("click", function () { activateTab(tab.dataset.tab); });
+  });
+})();
+
+// #137: Diag was previously a first-class button in primary #tab-nav,
+// shown to every operator on every install even though it is an
+// explicit dev-debugging tool ("may contain raw bridge data, do not
+// share screenshots"). Moved to a small secondary link near the status
+// banner instead -- same underlying tab-content panel, same
+// activateTab()/refresh behavior, just out of the primary navigation
+// an operator scans on every visit.
+(function initDiagLink() {
+  var link = document.querySelector("#diag-link");
+  if (!link) return;
+  link.addEventListener("click", function (e) {
+    e.preventDefault();
+    activateTab("diag");
   });
 })();
 
