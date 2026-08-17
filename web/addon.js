@@ -9,10 +9,43 @@ const buttonEl = document.querySelector("#refresh-players");
   } catch (e) {}
 })();
 
+// ── PANEL_CONFIG (#83, M-5) ──
+//
+// The single source of truth for every OPS data source this addon reads:
+// its cache/tab-lookup key and the provider method that fetches it. Before
+// this refactor, adding a new panel required touching 4 separate,
+// independently-maintained locations that could silently drift out of
+// sync: the SOURCE_NAMES array, _providerMethod()'s map, refreshAll()'s
+// Promise.allSettled call array, and refreshAll()'s destructuring
+// assignment. All 4 are now derived from this one array — adding a new
+// panel is a one-line addition here, plus wiring it into _tabProviders
+// below (which panel(s)/tab(s) it belongs to) and refreshAll()'s render
+// calls (what to do with the data once fetched).
+var PANEL_CONFIG = [
+  { key: "opsHealth", method: "getOpsHealth" },
+  { key: "activity", method: "getActivity" },
+  { key: "combat", method: "getCombat" },
+  { key: "resources", method: "getResources" },
+  { key: "economy", method: "getEconomy" },
+  { key: "inventory", method: "getInventory" },
+  { key: "location", method: "getLocation" },
+  { key: "soc", method: "getSoc" },
+  { key: "prometheus", method: "getPrometheusHealth" },
+  { key: "containerHealth", method: "getContainerHealth" },
+  { key: "postgresHealth", method: "getPostgresHealth" },
+  { key: "rabbitmqHealth", method: "getRabbitmqHealth" }
+];
+
 // ── Tab-aware lazy loading (Phase 0, Requirement 20 L1 design) ──
-// Maps each tab to its required provider methods. When a tab is activated
-// for the first time, or its cached data is older than TAB_CACHE_TTL_MS,
-// only that tab's providers are dispatched — not all 9 at once.
+// Maps each tab to its required provider source keys (PANEL_CONFIG[].key
+// values). When a tab is activated for the first time, or its cached data
+// is older than TAB_CACHE_TTL_MS, only that tab's providers are
+// dispatched — not all 12 at once. NOTE: this lazy-loading mechanism
+// (_refreshTab, used by activateTab() on every tab switch) is
+// deliberately NOT used by refreshAll() below — see #90's resolution
+// comment on refreshAll() for why initial page load and the manual
+// Refresh button both intentionally continue to dispatch every source,
+// not just the active tab's.
 var TAB_CACHE_TTL_MS = 60000;
 var _tabCache = new Map();
 var _activeProvider = null; // set by refreshAll(), read by _refreshTab()
@@ -34,23 +67,12 @@ var _tabProviders = {
   audit:    []
 };
 
-// Returns the provider method name for a given source key
+// Returns the provider method name for a given source key — derived from
+// PANEL_CONFIG (see above) rather than a second, independently-maintained
+// map, so the two can never drift out of sync with each other.
 function _providerMethod(source) {
-  var map = {
-    opsHealth: "getOpsHealth",
-    activity: "getActivity",
-    combat: "getCombat",
-    resources: "getResources",
-    economy: "getEconomy",
-    inventory: "getInventory",
-    location: "getLocation",
-    soc: "getSoc",
-    prometheus: "getPrometheusHealth",
-    containerHealth: "getContainerHealth",
-    postgresHealth: "getPostgresHealth",
-    rabbitmqHealth: "getRabbitmqHealth"
-  };
-  return map[source];
+  var entry = PANEL_CONFIG.filter(function (p) { return p.key === source; })[0];
+  return entry ? entry.method : undefined;
 }
 
 // Refreshes just the providers needed for a given tab. Uses cached results
@@ -1881,7 +1903,12 @@ function renderPrometheus(result) {
   }
 }
 
-const SOURCE_NAMES = ["opsHealth", "activity", "combat", "resources", "economy", "inventory", "location", "soc", "prometheus", "containerHealth", "postgresHealth", "rabbitmqHealth"];
+// #83: derived from PANEL_CONFIG (defined near the top of this file)
+// rather than a second, independently-maintained literal array. `var`
+// (not `const`) deliberately matches this file's existing convention for
+// every other module-scope value that test code needs to reach via
+// `window.SOURCE_NAMES` in the jsdom-eval test harness.
+var SOURCE_NAMES = PANEL_CONFIG.map(function (p) { return p.key; });
 
 // Promise.allSettled's rejection branch previously collapsed to a bare `{}`
 // (F-1/F-4's root cause for this call site): a rejected getXxx() call (e.g.
@@ -1907,23 +1934,24 @@ async function refreshAll() {
     if (document.body) document.body.dataset.provider = _activeProvider.name;
     _showPreviewWarning(_activeProvider);
 
-    const results = await Promise.allSettled([
-      _activeProvider.getOpsHealth ? _activeProvider.getOpsHealth() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null)),
-      _activeProvider.getActivity ? _activeProvider.getActivity() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null)),
-      _activeProvider.getCombat ? _activeProvider.getCombat() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null)),
-      _activeProvider.getResources ? _activeProvider.getResources() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null)),
-      _activeProvider.getEconomy ? _activeProvider.getEconomy() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null)),
-      _activeProvider.getInventory ? _activeProvider.getInventory() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null)),
-      _activeProvider.getLocation ? _activeProvider.getLocation() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null)),
-      _activeProvider.getSoc ? _activeProvider.getSoc() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null)),
-      _activeProvider.getPrometheusHealth ? _activeProvider.getPrometheusHealth() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null)),
-      _activeProvider.getContainerHealth ? _activeProvider.getContainerHealth() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null)),
-      _activeProvider.getPostgresHealth ? _activeProvider.getPostgresHealth() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null)),
-      _activeProvider.getRabbitmqHealth ? _activeProvider.getRabbitmqHealth() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null))
-    ]);
+    // #83: PANEL_CONFIG-driven — was 12 separately hand-written
+    // `_activeProvider.getXxx ? ... : ...` lines before this refactor.
+    // Adding a new panel to PANEL_CONFIG is now sufficient for it to be
+    // dispatched here; no second array to keep in sync.
+    const results = await Promise.allSettled(PANEL_CONFIG.map(function (p) {
+      return _activeProvider[p.method]
+        ? _activeProvider[p.method]()
+        : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null));
+    }));
 
     const sourceResults = results.map(settledToSourceResult);
-    const [opsHealth, activity, combat, resources, economy, inventory, location, soc, prometheus, containerHealth, postgresHealth, rabbitmqHealth] = sourceResults;
+    // #83: named accessors derived from PANEL_CONFIG's order, replacing
+    // the previous hand-written positional destructuring (which would
+    // have silently misaligned if PANEL_CONFIG's order and this
+    // destructuring list ever drifted apart).
+    const bySource = {};
+    PANEL_CONFIG.forEach(function (p, i) { bySource[p.key] = sourceResults[i]; });
+    const { opsHealth, activity, combat, resources, economy, inventory, location, soc, prometheus, containerHealth, postgresHealth, rabbitmqHealth } = bySource;
 
     // Populate _tabCache so tab switches don't re-fetch data already loaded
     var cacheAt = Date.now();
