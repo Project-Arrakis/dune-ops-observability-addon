@@ -457,11 +457,20 @@ function freshnessBadgeClass() {
   return "stale-critical";
 }
 
+// #140: headings inside a [data-no-freshness-badge] tab-content wrapper
+// (AAA/NOC-Infra/Audit -- permanently pending a Core R3 release with no
+// ETA -- and Location -- permanently out of scope by design) never get
+// a freshness badge. A green "fresh · Ns ago" badge on any of these
+// would directly contradict that same panel's own "Planned — requires
+// Core R3" or "will always report unavailable" copy a few lines below
+// it -- these panels never actually refresh, regardless of how recently
+// the rest of the addon successfully read live data.
 function updateFreshnessBadges() {
   var ageText = lastSuccessfulReadAt ? formatAge(Date.now() - lastSuccessfulReadAt.getTime()) : "never";
   var badgeClass = freshnessBadgeClass();
   var headings = document.querySelectorAll(".section-heading h2, .section-heading h3, .res-map-heading h3");
   headings.forEach(function (h) {
+    if (h.closest("[data-no-freshness-badge]")) return;
     var existing = h.querySelector(".freshness-badge");
     if (existing) existing.remove();
     var badge = document.createElement("span");

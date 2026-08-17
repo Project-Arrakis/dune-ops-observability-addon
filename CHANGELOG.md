@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Freshness badges no longer appear on permanently-inert placeholder
+  tabs (#140).** `updateFreshnessBadges()` previously stamped a green
+  "fresh · Ns ago" badge onto every `.section-heading` in the entire
+  document, unscoped — including the AAA/NOC Infra/Audit tabs (Core
+  R3-gated, no ETA) and the Location tab (permanently out of scope by
+  design), directly contradicting each panel's own "Planned — requires
+  Core R3" or "will always report unavailable" copy a few lines below
+  it. Those 4 tab-content panels now carry a `data-no-freshness-badge`
+  attribute; `updateFreshnessBadges()` skips any heading inside one.
+  Real, functional tabs (Overview, SOC, etc.) are unaffected — this is
+  a scoped exclusion, not a removal of the freshness-badge feature.
 - **"Connected Players" and "S2S Connections" metrics on NOC Overview
   are now wired to real, live data (#139).** `normalizeOpsHealth()`
   never actually extracted Core's real `connectedPlayers`/
