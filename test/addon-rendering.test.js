@@ -1054,6 +1054,33 @@ test("the instance-count badge clears to empty when a map section has zero insta
 
 // ── #137: AAA/NOC Infra/Audit hidden from primary nav; Diag moved to a secondary link ──
 
+// ── #140: freshness badges must never appear on permanently-inert placeholder headings ──
+
+test("no freshness badge appears on AAA/NOC-Infra/Audit/Location headings after a successful refresh (issue #140)", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, {});
+  runAddon(window);
+  await flushAsync();
+
+  for (const tabName of ["aaa", "noc-infra", "audit", "location"]) {
+    const panel = window.document.querySelector(`.tab-content[data-tab="${tabName}"]`);
+    assert.ok(panel, `${tabName} tab-content panel must exist`);
+    assert.equal(panel.hasAttribute("data-no-freshness-badge"), true, `${tabName} must carry the data-no-freshness-badge attribute`);
+    const badges = panel.querySelectorAll(".freshness-badge");
+    assert.equal(badges.length, 0, `${tabName} must have zero freshness badges, even after a real successful refresh`);
+  }
+});
+
+test("freshness badges still appear normally on real, functional tabs (e.g. Overview, SOC) -- the fix is scoped, not a global removal", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, {});
+  runAddon(window);
+  await flushAsync();
+
+  const overviewPanel = window.document.querySelector('.tab-content[data-tab="overview"]');
+  assert.ok(overviewPanel.querySelectorAll(".freshness-badge").length > 0, "real, functional tabs must still get freshness badges -- this fix scopes the exclusion to placeholder tabs only, not a global removal of the feature");
+});
+
 test("AAA, NOC Infra, and Audit tab buttons are hidden from primary nav (issue #137)", async () => {
   const { window } = loadAddon();
   installMockProvider(window, {});

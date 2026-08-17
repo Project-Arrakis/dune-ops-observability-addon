@@ -18,7 +18,7 @@
     does not govern.
   -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'; font-src 'self'; connect-src 'none'; frame-src 'self' http://localhost:3000; frame-ancestors 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; require-trusted-types-for 'script'">
-  <link rel="stylesheet" href="addon.css?v=1786982902">
+  <link rel="stylesheet" href="addon.css?v=1786984619">
 </head>
 <body>
   <main>
@@ -594,7 +594,12 @@
     </div><!-- /tab:inventory -->
 
     <!-- TAB: Location -->
-    <div class="tab-content" data-tab="location">
+    <!-- #140: data-no-freshness-badge -- this tab is permanently
+         out-of-scope by design (never populates, ever, regardless of
+         refresh success) -- a green "fresh · Ns ago" badge here would
+         directly contradict the section-copy's own "will always report
+         unavailable" statement a few lines below it. -->
+    <div class="tab-content" data-tab="location" data-no-freshness-badge>
 
     <section class="card">
       <div class="section-heading">
@@ -708,7 +713,11 @@
     </div><!-- /tab:soc -->
 
     <!-- TAB: AAA (Phase 0 placeholder — requires Core R3) -->
-    <div class="tab-content" data-tab="aaa">
+    <!-- #140: data-no-freshness-badge -- permanently non-functional
+         pending a Core R3 release with no ETA; a green "fresh" badge
+         here would directly contradict the "Planned — requires Core
+         R3" note a few lines below it. -->
+    <div class="tab-content" data-tab="aaa" data-no-freshness-badge>
       <section class="card">
         <div class="section-heading">
           <div>
@@ -723,7 +732,7 @@
     </div><!-- /tab:aaa -->
 
     <!-- TAB: NOC Infra (Phase 0 placeholder — requires Core R3) -->
-    <div class="tab-content" data-tab="noc-infra">
+    <div class="tab-content" data-tab="noc-infra" data-no-freshness-badge>
       <section class="card">
         <div class="section-heading">
           <div>
@@ -738,7 +747,7 @@
     </div><!-- /tab:noc-infra -->
 
     <!-- TAB: Audit Log (Phase 0 placeholder — requires Core R3) -->
-    <div class="tab-content" data-tab="audit">
+    <div class="tab-content" data-tab="audit" data-no-freshness-badge>
       <section class="card">
         <div class="section-heading">
           <div>
@@ -837,9 +846,9 @@
     </div><!-- /tab:diag -->
 
   </main>
-  <script src="faction-tagger.js?v=1786982902" integrity="sha384-ujc13Q/OEK7Rv2Q8kKgmnXVHIVSxWfZu9b21wuUakbGLC3ZYZpYrzPaU0aEmmGju"></script>
-  <script src="dune-addon-bridge.js?v=1786982902" integrity="sha384-X5CCvWUGvhbKTqZupV/KvEjGaEP8kenHCuLvdxeYfI/83L57CDK6uAB7XNdF/eMO"></script>
-  <script src="data-providers.js?v=1786982902" integrity="sha384-FrDypVkkqQLbU7ojp05/Vgw/bAnsa8tsK9XJEf/0JP4jLPUGkXNvXqvH0ReL16Gz"></script>
-  <script src="addon.js?v=1786982902" integrity="sha384-9EnEUWDaq2c4sUndvJ/++lmwOFb8W/f1APSDZACgZ9RR8IbrYdoDYMXQJPTkezvV"></script>
+  <script src="faction-tagger.js?v=1786984619" integrity="sha384-ujc13Q/OEK7Rv2Q8kKgmnXVHIVSxWfZu9b21wuUakbGLC3ZYZpYrzPaU0aEmmGju"></script>
+  <script src="dune-addon-bridge.js?v=1786984619" integrity="sha384-X5CCvWUGvhbKTqZupV/KvEjGaEP8kenHCuLvdxeYfI/83L57CDK6uAB7XNdF/eMO"></script>
+  <script src="data-providers.js?v=1786984619" integrity="sha384-FrDypVkkqQLbU7ojp05/Vgw/bAnsa8tsK9XJEf/0JP4jLPUGkXNvXqvH0ReL16Gz"></script>
+  <script src="addon.js?v=1786984619" integrity="sha384-nJ4wlgHFizjkmoy1IWdeCDQakDS0KiY90mQ22RXZHP5rAYfvXq+6+Up18882gPQV"></script>
 </body>
 </html>
