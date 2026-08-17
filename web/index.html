@@ -18,7 +18,7 @@
     does not govern.
   -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'; font-src 'self'; connect-src 'none'; frame-src 'self' http://localhost:3000; frame-ancestors 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; require-trusted-types-for 'script'">
-  <link rel="stylesheet" href="addon.css?v=1786994997">
+  <link rel="stylesheet" href="addon.css?v=1787001093">
 </head>
 <body>
   <main>
@@ -91,6 +91,12 @@
         <strong id="metric-farms">0</strong>
       </article>
     </section>
+
+    <!-- #82: shown only when getOpsHealth() returns a partial result --
+         some but not all of ops.health.summary.v2/.players/.farms
+         succeeded. Distinct from #empty-state (below, Players tab),
+         which covers the fully-unavailable and real-zero-rows cases. -->
+    <div id="ops-partial-note" class="availability-note" hidden></div>
 
     <section class="card">
       <div class="section-heading">
@@ -846,9 +852,9 @@
     </div><!-- /tab:diag -->
 
   </main>
-  <script src="faction-tagger.js?v=1786994997" integrity="sha384-uN44RmRtK0XOiamdDC0+QW4qcOIhP/PEZ0XCetjuDVt1NxV8cd0hzORAUvslLClg"></script>
-  <script src="dune-addon-bridge.js?v=1786994997" integrity="sha384-X5CCvWUGvhbKTqZupV/KvEjGaEP8kenHCuLvdxeYfI/83L57CDK6uAB7XNdF/eMO"></script>
-  <script src="data-providers.js?v=1786994997" integrity="sha384-FrDypVkkqQLbU7ojp05/Vgw/bAnsa8tsK9XJEf/0JP4jLPUGkXNvXqvH0ReL16Gz"></script>
-  <script src="addon.js?v=1786994997" integrity="sha384-exMFR9ZcPxeNVzBoFuwjmSrK4vmafMSUFbiiMeVNavMb+yviCbkImtM50K6Db8ch"></script>
+  <script src="faction-tagger.js?v=1787001093" integrity="sha384-uN44RmRtK0XOiamdDC0+QW4qcOIhP/PEZ0XCetjuDVt1NxV8cd0hzORAUvslLClg"></script>
+  <script src="dune-addon-bridge.js?v=1787001093" integrity="sha384-X5CCvWUGvhbKTqZupV/KvEjGaEP8kenHCuLvdxeYfI/83L57CDK6uAB7XNdF/eMO"></script>
+  <script src="data-providers.js?v=1787001093" integrity="sha384-sUHOffVnI/hQv3ZujUi9R0wDXyUDbyKjyGYb7YxiPaDhTk1aYjKK0cXy6ePSgAEd"></script>
+  <script src="addon.js?v=1787001093" integrity="sha384-kiJhrGGI6jFA1MCpAKG5Kdn9NqfeEM3H1vCfKIJBLkDy28M1Lyt81BXU8KW8y6xi"></script>
 </body>
 </html>

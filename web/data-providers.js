@@ -393,6 +393,17 @@
     return { status: "unavailable", data: null, reason, source };
   }
 
+  // #82: a partial SourceResult — used when getOpsHealth()'s 3 sub-calls
+  // (ops.health.summary.v2/.players/.farms) don't all succeed or all fail.
+  // `status` stays "live" (some real data is present and safe to render),
+  // but `partial: true` and `failedSources` let addon.js show an honest
+  // "some sources unavailable" note alongside the data that IS live,
+  // instead of the previous all-or-nothing behavior where a single failed
+  // sub-call took down the whole Overview/Players tab.
+  function partialResult(data, failedSources) {
+    return { status: "live", data, reason: null, source: null, partial: true, failedSources };
+  }
+
   async function fetchLiveOrUnavailable(action) {
     let data;
     try {
@@ -462,17 +473,51 @@
       name: "bridge",
       label: "Dune Docker Console bridge (all sources)",
       actions: ALL_ACTIONS,
+      // #82 (H-1): previously used Promise.all, so a single failed
+      // sub-call (summary/players/farms) took down the entire composite
+      // result as {status:"unavailable"} — collapsing the NOC Overview,
+      // Players tab, and KPIs even when 2 of 3 sub-sources were genuinely
+      // live. Promise.allSettled lets each sub-call fail independently:
+      // if all 3 succeed, behaves exactly as before (liveResult, no
+      // `partial` flag); if some-but-not-all fail, returns a partial
+      // liveResult with `failedSources` naming which action(s) failed, so
+      // callers can render the live sub-sources normally and show an
+      // honest "unavailable" note only for the failed ones; if all 3
+      // fail, still returns the original unavailableResult (nothing to
+      // render at all).
       async getOpsHealth() {
-        try {
-          const [summary, players, farms] = await Promise.all([
-            bridgeRequest("ops.health.summary.v2"),
-            bridgeRequest("ops.health.players"),
-            bridgeRequest("ops.health.farms")
-          ]);
-          return liveResult({ summary, players, farms });
-        } catch (err) {
+        // NOTE: these 3 literal bridgeRequest calls are matched by
+        // scripts/check-bridge-action-drift.js's static regex scan against
+        // README.md's action table -- do not refactor these into an array
+        // + .map() (a prior draft of this fix did exactly that and broke
+        // drift detection silently, since the checker only matches the
+        // literal call-site pattern, not derived/computed action strings).
+        const [summarySettled, playersSettled, farmsSettled] = await Promise.allSettled([
+          bridgeRequest("ops.health.summary.v2"),
+          bridgeRequest("ops.health.players"),
+          bridgeRequest("ops.health.farms")
+        ]);
+
+        const bySource = [
+          ["ops.health.summary.v2", summarySettled],
+          ["ops.health.players", playersSettled],
+          ["ops.health.farms", farmsSettled]
+        ];
+        const failedSources = bySource.filter(([, s]) => s.status === "rejected").map(([action]) => action);
+
+        if (failedSources.length === bySource.length) {
           return unavailableResult("request_failed", "ops.health.*");
         }
+
+        const summary = summarySettled.status === "fulfilled" ? summarySettled.value : null;
+        const players = playersSettled.status === "fulfilled" ? playersSettled.value : null;
+        const farms = farmsSettled.status === "fulfilled" ? farmsSettled.value : null;
+
+        if (failedSources.length === 0) {
+          return liveResult({ summary, players, farms });
+        }
+
+        return partialResult({ summary, players, farms }, failedSources);
       },
       async getActivity() {
         return fetchLiveOrUnavailable("ops.activity.summary");
@@ -521,6 +566,7 @@
     // needs to construct a SourceResult envelope consistently.
     liveResult,
     previewResult,
-    unavailableResult
+    unavailableResult,
+    partialResult
   };
 }());

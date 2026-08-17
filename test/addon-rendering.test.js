@@ -1572,3 +1572,107 @@ test("faction keyword tagging (Atreides/Harkonnen row coloring) is unaffected by
   assert.ok(factionRow, "the Atreides faction-activity row must exist");
   assert.equal(factionRow.getAttribute("data-tagged-faction"), "atreides", "faction-row tagging on the Activity tab (not the Spice tab) must still work exactly as before -- this fix only scopes the SPICE keyword scan, not faction tagging");
 });
+
+// ── #82 (H-1): getOpsHealth() partial results, not all-or-nothing ──
+//
+// Exercises the REAL providers.bridge.getOpsHealth() (not a hand-built
+// mock envelope) against a window.DuneAddon.request() double that fails
+// exactly one of the 3 sub-calls, proving Promise.allSettled + the new
+// `partial`/`failedSources` fields work end-to-end through the actual
+// provider code, the same discipline already used above for the
+// ops.health.prometheus reason-passthrough tests.
+
+test("getOpsHealth() returns a live, partial result (not unavailable) when 1 of 3 sub-calls fails", async () => {
+  const { window } = loadAddon();
+  window.DuneAddon = {
+    request: async (action) => {
+      if (action === "ops.health.summary.v2") return { players: { total: 3 }, farms: { total: 1 } };
+      if (action === "ops.health.players") throw new Error("simulated bridge timeout");
+      if (action === "ops.health.farms") return { total: 1, ready: 1, alive: 1 };
+      throw new Error(`unexpected action in test: ${action}`);
+    }
+  };
+
+  const result = await window.DuneOpsProviders.providers.bridge.getOpsHealth();
+  assert.equal(result.status, "live", "some sub-calls succeeded -- must stay live, not collapse to unavailable");
+  assert.equal(result.partial, true);
+  assert.equal(result.failedSources.length, 1);
+  assert.equal(result.failedSources[0], "ops.health.players");
+  assert.ok(result.data.summary, "the successfully-fetched summary sub-source must still be present in data");
+  assert.equal(result.data.players, null, "the failed sub-source must be null, not a stale/fabricated value");
+});
+
+test("getOpsHealth() returns a normal live result with no partial flag when all 3 sub-calls succeed", async () => {
+  const { window } = loadAddon();
+  window.DuneAddon = {
+    request: async (action) => {
+      if (action === "ops.health.summary.v2") return { players: { total: 3 }, farms: { total: 1 } };
+      if (action === "ops.health.players") return { total: 3 };
+      if (action === "ops.health.farms") return { total: 1, ready: 1, alive: 1 };
+      throw new Error(`unexpected action in test: ${action}`);
+    }
+  };
+
+  const result = await window.DuneOpsProviders.providers.bridge.getOpsHealth();
+  assert.equal(result.status, "live");
+  assert.equal(result.partial, undefined, "must not set partial:true when every sub-call succeeded");
+  assert.equal(result.failedSources, undefined);
+});
+
+test("getOpsHealth() still returns unavailable (not partial) when all 3 sub-calls fail", async () => {
+  const { window } = loadAddon();
+  window.DuneAddon = {
+    request: async () => {
+      throw new Error("simulated total bridge outage");
+    }
+  };
+
+  const result = await window.DuneOpsProviders.providers.bridge.getOpsHealth();
+  assert.equal(result.status, "unavailable", "zero sub-calls succeeded -- this is the pre-existing total-outage case, must be unchanged");
+  assert.equal(result.data, null);
+});
+
+test("renderOpsAggregate shows live totals AND a partial-availability note when getOpsHealth() returns partial data", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, {
+    getOpsHealth: async () => window.DuneOpsProviders.partialResult(
+      { summary: { players: { total: 5 }, farms: { total: 2 } } },
+      ["ops.health.farms"]
+    )
+  });
+  runAddon(window);
+  await flushAsync();
+
+  // The live sub-sources that did succeed must render normally, not be
+  // suppressed just because a sibling sub-call failed.
+  assert.equal(text(window, "#metric-total"), "5");
+
+  const note = window.document.querySelector("#ops-partial-note");
+  assert.ok(note, "#ops-partial-note element must exist in index.html");
+  assert.equal(note.hidden, false, "partial note must be shown when the result is partial");
+  assert.match(note.textContent, /ops\.health\.farms/, "partial note must name the specific failed sub-source");
+});
+
+test("renderOpsAggregate hides the partial-availability note when getOpsHealth() returns a normal (non-partial) live result", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, {
+    getOpsHealth: async () => live({ summary: { players: { total: 5 }, farms: { total: 2 } } })
+  });
+  runAddon(window);
+  await flushAsync();
+
+  const note = window.document.querySelector("#ops-partial-note");
+  assert.equal(note.hidden, true, "partial note must stay hidden for a fully-live (non-partial) result");
+});
+
+test("renderOpsAggregate hides the partial-availability note when getOpsHealth() is fully unavailable", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, {
+    getOpsHealth: async () => unavailable("request_failed", "ops.health.*")
+  });
+  runAddon(window);
+  await flushAsync();
+
+  const note = window.document.querySelector("#ops-partial-note");
+  assert.equal(note.hidden, true, "partial note is not the right UI for a total outage -- #empty-state already covers that case");
+});
