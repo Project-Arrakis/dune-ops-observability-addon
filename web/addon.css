@@ -1166,6 +1166,33 @@ pre { overflow: auto; white-space: pre-wrap; font-size: var(--font-size-xs); }
   grid-column: 2;
 }
 
+/* #133 PR 2: flags for metrics that don't fit the 0-100%-bounded .meter
+   shape (deadlock/queue-backlog counts, inverted low-is-bad thresholds
+   like cache-hit-ratio, and a plain up/down broker state) -- same
+   --status-degraded/--status-down palette as .meter__fill--warn/--crit,
+   applied directly to the text value instead of a bar. */
+.container-tile-metric-value--warn {
+  color: var(--status-degraded);
+  font-weight: 700;
+}
+.container-tile-metric-value--crit {
+  color: var(--status-down);
+  font-weight: 700;
+}
+
+/* #133 PR 2: family-specific section divider (Postgres/RabbitMQ extra
+   metrics appended below a container tile's base CPU/mem/net/disk-IO
+   rows). */
+.container-tile-family-divider {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-default);
+  color: var(--text-tertiary);
+  font-size: var(--font-size-2xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
 /* container-tile-metric--with-meter: the value sits above the bar --
    the base grid above only governs label+value; the meter itself is a
    full-width third element appended after, not a grid column, so it

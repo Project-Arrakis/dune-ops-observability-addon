@@ -17,7 +17,7 @@ var TAB_CACHE_TTL_MS = 60000;
 var _tabCache = new Map();
 var _activeProvider = null; // set by refreshAll(), read by _refreshTab()
 var _tabProviders = {
-  overview: ["opsHealth", "prometheus", "containerHealth"],
+  overview: ["opsHealth", "prometheus", "containerHealth", "postgresHealth", "rabbitmqHealth"],
   players:  ["opsHealth"],
   activity: ["activity"],
   combat:   ["combat"],
@@ -46,7 +46,9 @@ function _providerMethod(source) {
     location: "getLocation",
     soc: "getSoc",
     prometheus: "getPrometheusHealth",
-    containerHealth: "getContainerHealth"
+    containerHealth: "getContainerHealth",
+    postgresHealth: "getPostgresHealth",
+    rabbitmqHealth: "getRabbitmqHealth"
   };
   return map[source];
 }
@@ -102,13 +104,15 @@ function _renderTabData(tabName, results) {
       var opsHealth = get("opsHealth");
       var prom = get("prometheus");
       var containerHealth = get("containerHealth");
+      var postgresHealth = get("postgresHealth");
+      var rabbitmqHealth = get("rabbitmqHealth");
       if (opsHealth) {
         var snap = normalizeOpsHealth(opsHealth);
         renderOpsAggregate(snap, new Date());
         renderNocService(_activeProvider, snap, new Date(), prom);
       }
       if (prom) renderPrometheus(prom);
-      renderContainerGrid(containerHealth);
+      renderContainerGrid(containerHealth, postgresHealth, rabbitmqHealth);
       break;
     case "players":
       var oh = get("opsHealth");
@@ -1299,7 +1303,25 @@ function renderFarmSummary(snapshot) {
 // showed 4 host-level numbers, permanently "—" for any install not
 // running the optional metrics stack) -- see docs/design/
 // noc-overview-rebuild-l1-design-2026-08-17.md for the full design.
-function renderContainerGrid(result) {
+// Container name -> family mapping (#133 PR 2). Name-pattern based, not
+// image-tag based: container names are a stable, already-documented
+// contract in dune-awakening-selfhost-docker's own orchestration
+// scripts, while Funcom's image tags change on every game update.
+// Anything not matching a specific pattern falls through to "generic"
+// -- deliberately not special-cased further (no game-process metrics
+// exist yet for dune-server-*/dune-director/dune-text-router; see the
+// L1 design doc's "Out of Scope" section).
+var CONTAINER_FAMILY_PATTERNS = [
+  { family: "postgres", pattern: /^dune-postgres$/ },
+  { family: "rabbitmq", pattern: /^dune-rmq-(admin|game)$/ }
+];
+
+function containerFamily(name) {
+  var match = CONTAINER_FAMILY_PATTERNS.filter(function (p) { return p.pattern.test(name); })[0];
+  return match ? match.family : "generic";
+}
+
+function renderContainerGrid(result, postgresResult, rabbitmqResult) {
   if (containerGridLoadingNoteEl) containerGridLoadingNoteEl.hidden = true;
 
   if (!result || result.status === "unavailable") {
@@ -1326,8 +1348,19 @@ function renderContainerGrid(result) {
     return;
   }
 
+  // Family data is resolved once per render, not per tile -- both
+  // ops.health.postgres/.rabbitmq are single aggregate results (not
+  // per-container), so every dune-postgres tile shares the same
+  // postgresResult, and both dune-rmq-* tiles share the same
+  // rabbitmqResult (further narrowed to that specific instance's
+  // up-state via .instances[]).
+  const postgresData = postgresResult && postgresResult.status === "live" ? postgresResult.data : null;
+  const rabbitmqData = rabbitmqResult && rabbitmqResult.status === "live" ? rabbitmqResult.data : null;
+
   for (const container of containers) {
-    containerGridEl.appendChild(renderContainerTile(container));
+    const family = containerFamily(container.name);
+    const familyData = family === "postgres" ? postgresData : family === "rabbitmq" ? rabbitmqData : null;
+    containerGridEl.appendChild(renderContainerTile(container, family, familyData));
   }
 }
 
@@ -1419,7 +1452,141 @@ function makeMetricRow(label, valueText, percent, warnAt, critAt) {
   return row;
 }
 
-function renderContainerTile(container) {
+// Family-specific metric sections (#133 PR 2). Thresholds are lifted
+// directly from runtime/metrics/rules/postgres.yml and rabbitmq.yml's
+// own alert expressions (see the L1 design doc's threshold table) --
+// not invented separately, so a yellow/red tile here always agrees
+// with what would actually page an operator via Alertmanager. Where
+// the real alert rule has no critical tier (most of them -- these
+// rules are deliberately warning-only), this UI has no red tier for
+// that metric either.
+function appendFamilyDivider(card, label) {
+  const divider = document.createElement("div");
+  divider.className = "container-tile-family-divider";
+  divider.textContent = label;
+  card.appendChild(divider);
+}
+
+function appendPostgresMetrics(card, postgresData) {
+  appendFamilyDivider(card, "Postgres");
+  if (!postgresData) {
+    const row = document.createElement("div");
+    row.className = "container-tile-metric";
+    row.textContent = "Postgres metrics unavailable";
+    card.appendChild(row);
+    return;
+  }
+  const active = postgresData.connections && postgresData.connections.active;
+  const max = postgresData.connections && postgresData.connections.max;
+  const connPercent = (active === null || active === undefined || max === null || max === undefined || max === 0)
+    ? null
+    : (active / max) * 100;
+  const connText = (active === null || active === undefined) ? "—" : `${active}${max ? ` / ${max}` : ""}`;
+  // DunePostgresHighConnections (warn >80%) / DunePostgresCriticalConnections (crit >95%)
+  card.appendChild(makeMetricRow("Connections", connText, connPercent, 80, 95));
+
+  const cacheHit = postgresData.cacheHitRatioPercent;
+  const cacheText = (cacheHit === null || cacheHit === undefined) ? "—" : `${cacheHit}%`;
+  const cacheRow = document.createElement("div");
+  cacheRow.className = "container-tile-metric";
+  const cacheLabel = document.createElement("span");
+  cacheLabel.className = "container-tile-metric-label";
+  cacheLabel.textContent = "Cache hit";
+  const cacheValue = document.createElement("span");
+  cacheValue.className = "container-tile-metric-value";
+  // DunePostgresLowCacheHitRatio fires below 95% -- this is an
+  // inverted threshold (low is bad), so it's shown as plain text with
+  // no meter rather than reusing makeMeter()'s "higher is worse"
+  // convention, which would misleadingly fill the bar for a HEALTHY
+  // high cache-hit ratio.
+  cacheValue.textContent = cacheText;
+  if (cacheHit !== null && cacheHit !== undefined && cacheHit < 95) {
+    cacheValue.classList.add("container-tile-metric-value--warn");
+  }
+  cacheRow.appendChild(cacheLabel);
+  cacheRow.appendChild(cacheValue);
+  card.appendChild(cacheRow);
+
+  const deadlocks = postgresData.deadlocksLast5m;
+  const deadlockRow = document.createElement("div");
+  deadlockRow.className = "container-tile-metric";
+  const deadlockLabel = document.createElement("span");
+  deadlockLabel.className = "container-tile-metric-label";
+  deadlockLabel.textContent = "Deadlocks (5m)";
+  const deadlockValue = document.createElement("span");
+  deadlockValue.className = "container-tile-metric-value";
+  deadlockValue.textContent = (deadlocks === null || deadlocks === undefined) ? "—" : String(deadlocks);
+  // DunePostgresDeadlocks fires on ANY increase (> 0) -- not a percent
+  // threshold, so flagged directly rather than via makeMeter().
+  if (deadlocks !== null && deadlocks !== undefined && deadlocks > 0) {
+    deadlockValue.classList.add("container-tile-metric-value--warn");
+  }
+  deadlockRow.appendChild(deadlockLabel);
+  deadlockRow.appendChild(deadlockValue);
+  card.appendChild(deadlockRow);
+}
+
+function appendRabbitmqMetrics(card, rabbitmqData, containerName) {
+  appendFamilyDivider(card, "RabbitMQ");
+  if (!rabbitmqData) {
+    const row = document.createElement("div");
+    row.className = "container-tile-metric";
+    row.textContent = "RabbitMQ metrics unavailable";
+    card.appendChild(row);
+    return;
+  }
+
+  // rabbitmqData.instances[] carries the per-instance up-state for both
+  // brokers; queueDepth/memPercent/fdPercent are aggregate (max/sum)
+  // across whichever instances Prometheus is scraping, not split per
+  // container -- shown identically on both dune-rmq-admin and
+  // dune-rmq-game tiles today. A true per-instance breakdown would
+  // require per-instance PromQL label filtering, deferred as a
+  // possible future refinement (not scoped in the L1 design doc).
+  const instanceEntry = (rabbitmqData.instances || []).filter(function (i) {
+    return containerName && containerName.indexOf(i.name.replace("rabbitmq-", "rmq-")) !== -1;
+  })[0];
+  const instanceUpText = instanceEntry ? (instanceEntry.up ? "Up" : "Down") : (rabbitmqData.up ? "Up" : "Down");
+  const upRow = document.createElement("div");
+  upRow.className = "container-tile-metric";
+  const upLabel = document.createElement("span");
+  upLabel.className = "container-tile-metric-label";
+  upLabel.textContent = "Broker";
+  const upValue = document.createElement("span");
+  upValue.className = "container-tile-metric-value";
+  upValue.textContent = instanceUpText;
+  if (instanceUpText === "Down") upValue.classList.add("container-tile-metric-value--crit");
+  upRow.appendChild(upLabel);
+  upRow.appendChild(upValue);
+  card.appendChild(upRow);
+
+  const queueDepth = rabbitmqData.queueDepth;
+  const queueText = (queueDepth === null || queueDepth === undefined) ? "—" : String(queueDepth);
+  const queueRow = document.createElement("div");
+  queueRow.className = "container-tile-metric";
+  const queueLabel = document.createElement("span");
+  queueLabel.className = "container-tile-metric-label";
+  queueLabel.textContent = "Queue depth";
+  const queueValue = document.createElement("span");
+  queueValue.className = "container-tile-metric-value";
+  queueValue.textContent = queueText;
+  // DuneRabbitMQQueueBacklog/UnackedBacklog fire above 1000 (absolute
+  // count, not a percent) -- flagged directly rather than via
+  // makeMeter(), which expects a 0-100 bounded value.
+  if (queueDepth !== null && queueDepth !== undefined && queueDepth > 1000) {
+    queueValue.classList.add("container-tile-metric-value--warn");
+  }
+  queueRow.appendChild(queueLabel);
+  queueRow.appendChild(queueValue);
+  card.appendChild(queueRow);
+
+  // DuneRabbitMQHighMemory (warn >80%, no critical tier defined)
+  card.appendChild(makeMetricRow("Mem limit", rabbitmqData.memPercent === null || rabbitmqData.memPercent === undefined ? "—" : `${rabbitmqData.memPercent}%`, rabbitmqData.memPercent, 80));
+  // DuneRabbitMQHighFileDescriptors (warn >80%, no critical tier defined)
+  card.appendChild(makeMetricRow("FD usage", rabbitmqData.fdPercent === null || rabbitmqData.fdPercent === undefined ? "—" : `${rabbitmqData.fdPercent}%`, rabbitmqData.fdPercent, 80));
+}
+
+function renderContainerTile(container, family, familyData) {
   const card = document.createElement("article");
   const healthTier = containerHealthClass(container);
   card.className = `container-tile container-tile--${healthTier}`;
@@ -1472,6 +1639,12 @@ function renderContainerTile(container) {
   blockRow.appendChild(blockLabel);
   blockRow.appendChild(blockValue);
   card.appendChild(blockRow);
+
+  if (family === "postgres") {
+    appendPostgresMetrics(card, familyData);
+  } else if (family === "rabbitmq") {
+    appendRabbitmqMetrics(card, familyData, container && container.name);
+  }
 
   return card;
 }
@@ -1545,7 +1718,7 @@ function renderPrometheus(result) {
   }
 }
 
-const SOURCE_NAMES = ["opsHealth", "activity", "combat", "resources", "economy", "inventory", "location", "soc", "prometheus", "containerHealth"];
+const SOURCE_NAMES = ["opsHealth", "activity", "combat", "resources", "economy", "inventory", "location", "soc", "prometheus", "containerHealth", "postgresHealth", "rabbitmqHealth"];
 
 // Promise.allSettled's rejection branch previously collapsed to a bare `{}`
 // (F-1/F-4's root cause for this call site): a rejected getXxx() call (e.g.
@@ -1581,11 +1754,13 @@ async function refreshAll() {
       _activeProvider.getLocation ? _activeProvider.getLocation() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null)),
       _activeProvider.getSoc ? _activeProvider.getSoc() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null)),
       _activeProvider.getPrometheusHealth ? _activeProvider.getPrometheusHealth() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null)),
-      _activeProvider.getContainerHealth ? _activeProvider.getContainerHealth() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null))
+      _activeProvider.getContainerHealth ? _activeProvider.getContainerHealth() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null)),
+      _activeProvider.getPostgresHealth ? _activeProvider.getPostgresHealth() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null)),
+      _activeProvider.getRabbitmqHealth ? _activeProvider.getRabbitmqHealth() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null))
     ]);
 
     const sourceResults = results.map(settledToSourceResult);
-    const [opsHealth, activity, combat, resources, economy, inventory, location, soc, prometheus, containerHealth] = sourceResults;
+    const [opsHealth, activity, combat, resources, economy, inventory, location, soc, prometheus, containerHealth, postgresHealth, rabbitmqHealth] = sourceResults;
 
     // Populate _tabCache so tab switches don't re-fetch data already loaded
     var cacheAt = Date.now();
@@ -1608,7 +1783,7 @@ async function refreshAll() {
     renderPrometheus(prometheus);
     renderNocService(_activeProvider, snapshot, refreshedAt, prometheus);
     renderFarmSummary(snapshot);
-    renderContainerGrid(containerHealth);
+    renderContainerGrid(containerHealth, postgresHealth, rabbitmqHealth);
 
     const opsHealthResult = updateOpsHealth(_activeProvider, snapshot.available ? summary.totals : null, refreshedAt, snapshot.available ? null : new Error("ops.health.* unavailable"));
 

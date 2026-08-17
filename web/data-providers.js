@@ -51,6 +51,19 @@
     "ops.health.containers"
   ];
 
+  // #133 PR 2: family-specific extra metrics for postgres/rabbitmq
+  // container tiles. Backed by dune-awakening-selfhost-docker's
+  // addonOpsPostgresHealth()/addonOpsRabbitmqHealth() -- pure PromQL
+  // reads against the already-deployed, already-scraped
+  // dune-postgres-exporter/rabbitmq_prometheus metrics (same opt-in
+  // "dune metrics start" stack as ops.health.prometheus).
+  const OPS_POSTGRES_HEALTH_ACTIONS = [
+    "ops.health.postgres"
+  ];
+  const OPS_RABBITMQ_HEALTH_ACTIONS = [
+    "ops.health.rabbitmq"
+  ];
+
   const samplePrometheusHealth = {
     healthy: true,
     targets: { active: 6, inactive: 0, pending: 0, total: 6 },
@@ -84,6 +97,26 @@
     ]
   };
 
+  // Real shapes match addonOpsPostgresHealth()/addonOpsRabbitmqHealth()
+  // exactly (see dune-awakening-selfhost-docker's duneDb.js) -- never
+  // guessed field names.
+  const samplePostgresHealth = {
+    up: true,
+    connections: { active: 18, max: 100 },
+    cacheHitRatioPercent: 98.2,
+    deadlocksLast5m: 0
+  };
+  const sampleRabbitmqHealth = {
+    up: true,
+    instances: [
+      { name: "rabbitmq-admin", up: true },
+      { name: "rabbitmq-game", up: true }
+    ],
+    queueDepth: 42,
+    memPercent: 12.3,
+    fdPercent: 4.1
+  };
+
   const ALL_ACTIONS = [].concat(
     OPS_HEALTH_ACTIONS,
     OPS_ACTIVITY_ACTIONS,
@@ -94,7 +127,9 @@
     OPS_LOCATION_ACTIONS,
     OPS_SOC_ACTIONS,
     OPS_PROMETHEUS_ACTIONS,
-    OPS_CONTAINER_HEALTH_ACTIONS
+    OPS_CONTAINER_HEALTH_ACTIONS,
+    OPS_POSTGRES_HEALTH_ACTIONS,
+    OPS_RABBITMQ_HEALTH_ACTIONS
   );
 
   const sampleOpsHealth = {
@@ -415,6 +450,12 @@
       },
       async getContainerHealth() {
         return previewResult(sampleContainerHealth);
+      },
+      async getPostgresHealth() {
+        return previewResult(samplePostgresHealth);
+      },
+      async getRabbitmqHealth() {
+        return previewResult(sampleRabbitmqHealth);
       }
     },
     bridge: {
@@ -459,6 +500,12 @@
       },
       async getContainerHealth() {
         return fetchLiveOrUnavailable("ops.health.containers");
+      },
+      async getPostgresHealth() {
+        return fetchLiveOrUnavailable("ops.health.postgres");
+      },
+      async getRabbitmqHealth() {
+        return fetchLiveOrUnavailable("ops.health.rabbitmq");
       }
     }
   };

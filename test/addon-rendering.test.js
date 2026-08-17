@@ -317,6 +317,106 @@ test("renderContainerGrid tiles never show the literal string 0% for a container
   assert.match(tile.textContent, /0\.00%/, "a real, live 0.00% must render verbatim, not as a dash or omitted");
 });
 
+// ── #133 PR 2: family-specific extra metrics on Postgres/RabbitMQ tiles ──
+
+test("the dune-postgres tile shows real connections/cache-hit/deadlocks data when ops.health.postgres is live", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, {
+    getContainerHealth: async () => live({
+      containers: [{ name: "dune-postgres", cpu: "3.40%", mem: "412MiB", memLimit: "2GiB", netIO: "12kB / 4kB", blockIO: "1.2MB / 340kB", status: "Up 2 hours (healthy)" }]
+    }),
+    getPostgresHealth: async () => live({ up: true, connections: { active: 18, max: 100 }, cacheHitRatioPercent: 98.2, deadlocksLast5m: 0 })
+  });
+  runAddon(window);
+  await flushAsync();
+
+  const tile = window.document.querySelector(".container-tile");
+  assert.match(tile.textContent, /Postgres/, "must show the family divider label");
+  assert.match(tile.textContent, /18 \/ 100/, "must show real connections active/max, not a fabricated value");
+  assert.match(tile.textContent, /98\.2%/, "must show the real cache hit ratio");
+  assert.match(tile.textContent, /Deadlocks \(5m\)/);
+});
+
+test("a dune-rmq-* tile does not show Postgres metrics, and vice versa (family detection by container name)", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, {
+    getContainerHealth: async () => live({
+      containers: [
+        { name: "dune-postgres", cpu: "1%", mem: "1MiB", memLimit: "1GiB", netIO: "0B", blockIO: "0B", status: "Up" },
+        { name: "dune-rmq-game", cpu: "1%", mem: "1MiB", memLimit: "1GiB", netIO: "0B", blockIO: "0B", status: "Up" },
+        { name: "dune-server-survival-1", cpu: "1%", mem: "1MiB", memLimit: "1GiB", netIO: "0B", blockIO: "0B", status: "Up" }
+      ]
+    }),
+    getPostgresHealth: async () => live({ up: true, connections: { active: 1, max: 10 }, cacheHitRatioPercent: 99, deadlocksLast5m: 0 }),
+    getRabbitmqHealth: async () => live({ up: true, instances: [{ name: "rabbitmq-game", up: true }], queueDepth: 5, memPercent: 1, fdPercent: 1 })
+  });
+  runAddon(window);
+  await flushAsync();
+
+  const tiles = window.document.querySelectorAll(".container-tile");
+  assert.equal(tiles.length, 3);
+  assert.match(tiles[0].textContent, /Postgres/);
+  assert.doesNotMatch(tiles[0].textContent, /RabbitMQ/);
+  assert.match(tiles[1].textContent, /RabbitMQ/);
+  assert.doesNotMatch(tiles[1].textContent, /Postgres/);
+  assert.doesNotMatch(tiles[2].textContent, /Postgres|RabbitMQ/, "a generic tile (dune-server-*) must show neither family section");
+});
+
+test("a Postgres tile shows an honest 'unavailable' family section, not fabricated data, when ops.health.postgres itself is unavailable", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, {
+    getContainerHealth: async () => live({
+      containers: [{ name: "dune-postgres", cpu: "1%", mem: "1MiB", memLimit: "1GiB", netIO: "0B", blockIO: "0B", status: "Up" }]
+    }),
+    getPostgresHealth: async () => unavailable("metrics_stack_not_running", "ops.health.postgres")
+  });
+  runAddon(window);
+  await flushAsync();
+
+  const tile = window.document.querySelector(".container-tile");
+  assert.match(tile.textContent, /Postgres metrics unavailable/i);
+  assert.doesNotMatch(tile.textContent, /18 \/ 100/, "must never show stale/fabricated connection data when the source is unavailable");
+});
+
+test("a RabbitMQ tile flags high memory/fd usage using the same thresholds as the real Alertmanager rules (warn >80%)", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, {
+    getContainerHealth: async () => live({
+      containers: [{ name: "dune-rmq-game", cpu: "1%", mem: "1MiB", memLimit: "1GiB", netIO: "0B", blockIO: "0B", status: "Up" }]
+    }),
+    getRabbitmqHealth: async () => live({ up: true, instances: [{ name: "rabbitmq-game", up: true }], queueDepth: 5, memPercent: 82, fdPercent: 12 })
+  });
+  runAddon(window);
+  await flushAsync();
+
+  const tile = window.document.querySelector(".container-tile");
+  const memValue = Array.from(tile.querySelectorAll(".container-tile-metric-value")).filter((el) => el.textContent === "82%")[0];
+  assert.ok(memValue, "must show the real 82% memory value");
+  assert.ok(memValue.closest(".container-tile-metric").querySelector(".meter__fill--warn"), "82% must render the warn-tier meter color, matching DuneRabbitMQHighMemory's >80% threshold");
+});
+
+test("a RabbitMQ tile shows 'Down' (not silently omitted) when its specific broker instance is down, even if the other broker is up", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, {
+    getContainerHealth: async () => live({
+      containers: [{ name: "dune-rmq-game", cpu: "1%", mem: "1MiB", memLimit: "1GiB", netIO: "0B", blockIO: "0B", status: "Up" }]
+    }),
+    getRabbitmqHealth: async () => live({
+      up: false,
+      instances: [
+        { name: "rabbitmq-admin", up: true },
+        { name: "rabbitmq-game", up: false }
+      ],
+      queueDepth: 0, memPercent: 5, fdPercent: 5
+    })
+  });
+  runAddon(window);
+  await flushAsync();
+
+  const tile = window.document.querySelector(".container-tile");
+  assert.match(tile.textContent, /Down/, "the dune-rmq-game tile's own instance is down and must say so");
+});
+
 test("a rejected provider promise (not just an {status:'unavailable'} envelope) also renders as unavailable, not 0", async () => {
   // This is the exact defect this session found beyond the original gap
   // analysis: Promise.allSettled's rejection branch used to collapse to a
@@ -404,14 +504,16 @@ test("status banner reports a degraded source count instead of claiming all sour
     getLocation: async () => unavailable("not_implemented", "ops.location.activity"),
     getSoc: async () => unavailable("not_implemented", "ops.soc.summary"),
     getPrometheusHealth: async () => unavailable("not_implemented", "ops.health.prometheus"),
-    getContainerHealth: async () => unavailable("not_implemented", "ops.health.containers")
+    getContainerHealth: async () => unavailable("not_implemented", "ops.health.containers"),
+    getPostgresHealth: async () => unavailable("not_implemented", "ops.health.postgres"),
+    getRabbitmqHealth: async () => unavailable("not_implemented", "ops.health.rabbitmq")
   });
   runAddon(window);
   await flushAsync();
 
   const status = text(window, "#status");
-  assert.doesNotMatch(status, /all .* sources online/i, "must not claim all sources are online when 6 of 10 are unavailable");
-  assert.match(status, /3 of 10/, "must report the real live/total source count");
+  assert.doesNotMatch(status, /all .* sources online/i, "must not claim all sources are online when 8 of 12 are unavailable");
+  assert.match(status, /3 of 12/, "must report the real live/total source count");
 });
 
 test("status banner correctly claims all sources online only when every source truly is", async () => {
@@ -427,12 +529,14 @@ test("status banner correctly claims all sources online only when every source t
     getLocation: async () => okData,
     getSoc: async () => okData,
     getPrometheusHealth: async () => okData,
-    getContainerHealth: async () => okData
+    getContainerHealth: async () => okData,
+    getPostgresHealth: async () => okData,
+    getRabbitmqHealth: async () => okData
   });
   runAddon(window);
   await flushAsync();
 
-  assert.match(text(window, "#status"), /all 10 observability sources online/i);
+  assert.match(text(window, "#status"), /all 12 observability sources online/i);
 });
 
 // ── Non-fabrication guardrail: unavailable sources must not appear in the diagnostics output as if they were real ──

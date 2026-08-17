@@ -23,6 +23,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   strip and removal of the "Service Health Map" defect (#77) land in
   PR 3. See `docs/design/noc-overview-rebuild-l1-design-2026-08-17.md`
   for the full design.
+- **NOC Overview: family-specific Postgres/RabbitMQ tile metrics (#133,
+  PR 2 of 3).** `dune-postgres` container tiles now show real
+  connections (active/max), cache hit ratio, and deadlocks-in-the-last-
+  5-minutes; `dune-rmq-admin`/`dune-rmq-game` tiles show real broker
+  up/down state, queue depth, memory %, and file-descriptor %. Backed by
+  two new `dune-awakening-selfhost-docker` bridge actions,
+  `ops.health.postgres`/`ops.health.rabbitmq` (`#302`) — pure PromQL
+  reads against the already-deployed `dune-postgres-exporter`/
+  `rabbitmq_prometheus` metrics, using the exact same query expressions
+  as the real Alertmanager rules in `runtime/metrics/rules/*.yml`, so a
+  tile's warn/crit color always agrees with what would actually page an
+  operator. Container → family detection is by container name pattern
+  (`dune-postgres`, `dune-rmq-(admin|game)`), not image tag.
 
 ### Fixed
 - **`enforce_admins` was `false` on `main`'s branch protection, meaning
