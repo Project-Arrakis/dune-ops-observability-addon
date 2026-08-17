@@ -1111,3 +1111,265 @@ test("clicking a primary tab button still deactivates the secondary Diag link's 
   assert.equal(window.document.querySelector("#diag-link").classList.contains("active"), false, "switching to a primary tab must clear the secondary link's active state");
   assert.ok(window.document.querySelector('.tab-content[data-tab="players"]').classList.contains("active"));
 });
+
+// ── #138: test coverage for renderLocation, renderSoc, renderSystemServicesTable, renderFarmSummary, renderKpis ──
+// (issue #114 superseded/closed in favor of #138 -- 2 of #114's 4 named
+// functions, renderNocService/renderNocResources, no longer exist after
+// the #133 rebuild; this section covers the real current gaps.)
+
+test("renderLocation shows 'Not available', not 0, when the source is unavailable", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, {
+    getLocation: async () => unavailable("not_implemented", "ops.location.activity")
+  });
+  runAddon(window);
+  await flushAsync();
+
+  assert.equal(text(window, "#loc-map-count"), "—");
+  assert.equal(text(window, "#loc-markers"), "—");
+  assert.notEqual(text(window, "#loc-map-count"), "0");
+  const note = window.document.querySelector("#loc-availability-note");
+  assert.equal(note.hidden, false);
+  assert.match(note.textContent, /not available/i);
+});
+
+test("renderLocation renders real map count, marker count, and both tables when live", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, {
+    getLocation: async () => live({
+      activeMaps: [{ map: "Deep Desert", players: 4, online: 2 }, { map: "Arrakeen", players: 2, online: 1 }],
+      totalMarkers: 87,
+      markersByMap: [{ map: "Deep Desert", markers: 35 }, { map: "Arrakeen", markers: 24 }],
+      playerDensity: [],
+      territoryPressure: []
+    })
+  });
+  runAddon(window);
+  await flushAsync();
+
+  assert.equal(text(window, "#loc-map-count"), "2", "must count the real number of active maps, not a fabricated value");
+  assert.equal(text(window, "#loc-markers"), "87");
+  assert.equal(window.document.querySelectorAll("#loc-density-body tr").length, 2, "must render one density row per active map");
+  assert.equal(window.document.querySelectorAll("#loc-markers-body tr").length, 2, "must render one row per map in markersByMap");
+  assert.equal(window.document.querySelector("#loc-availability-note").hidden, true);
+});
+
+test("renderLocation falls back to playerDensity for the density table only when activeMaps is entirely absent, not when it's a real empty array", async () => {
+  // Real, verified behavior: `d.activeMaps || d.playerDensity || []` only
+  // falls back when activeMaps is falsy (undefined/null/missing) --
+  // an empty array `[]` is truthy in JS, so a genuine "zero active maps"
+  // result does NOT fall back to playerDensity, it correctly stays
+  // empty. This test pins that real, if subtle, behavior distinction
+  // rather than assuming a naive "empty means fall back" reading.
+  const { window } = loadAddon();
+  installMockProvider(window, {
+    getLocation: async () => live({
+      totalMarkers: 0,
+      markersByMap: [],
+      playerDensity: [{ map: "Sietch Tabr", players: 3, online: 1 }]
+      // activeMaps deliberately omitted entirely (undefined), not [] --
+      // this is the only shape that actually triggers the fallback.
+    })
+  });
+  runAddon(window);
+  await flushAsync();
+
+  assert.equal(text(window, "#loc-map-count"), "0", "(d.activeMaps || []).length is 0 when activeMaps is undefined");
+  assert.equal(window.document.querySelectorAll("#loc-density-body tr").length, 1, "density table falls back to playerDensity when activeMaps is genuinely absent (undefined), not merely empty");
+});
+
+test("renderSoc shows 'Not available' metric cards, not 0, when the source is unavailable", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, {
+    getSoc: async () => unavailable("bridge_error", "ops.soc.summary")
+  });
+  runAddon(window);
+  await flushAsync();
+
+  assert.equal(text(window, "#soc-health"), "—");
+  assert.equal(text(window, "#soc-requests"), "—");
+  assert.equal(text(window, "#soc-errors"), "—");
+  assert.equal(text(window, "#soc-success"), "—");
+  assert.notEqual(text(window, "#soc-requests"), "0");
+  assert.equal(window.document.querySelector("#soc-availability-note").hidden, false);
+});
+
+test("renderSoc renders real platform health, request/error counts, and success rate when live", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, {
+    getSoc: async () => live({ platformHealth: "Healthy", bridgeRequests: 47, bridgeErrors: 1, bridgeSuccessRate: 97.9 })
+  });
+  runAddon(window);
+  await flushAsync();
+
+  assert.equal(text(window, "#soc-health"), "Healthy");
+  assert.equal(text(window, "#soc-requests"), "47");
+  assert.equal(text(window, "#soc-errors"), "1");
+  assert.equal(text(window, "#soc-success"), "98%", "must round the real bridgeSuccessRate, not recompute it when Core already provides one");
+  assert.equal(window.document.querySelector("#soc-availability-note").hidden, true);
+});
+
+test("renderSoc derives a real success rate from requests/errors when Core omits bridgeSuccessRate, and shows a genuine 0% (not a dash) when zero requests have occurred", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, {
+    getSoc: async () => live({ platformHealth: "Healthy", bridgeRequests: 0, bridgeErrors: 0 })
+  });
+  runAddon(window);
+  await flushAsync();
+
+  // bridgeRequests > 0 is false here, so the derived-rate branch's own
+  // ternary falls through to the literal 0 fallback -- a real, honest
+  // "no requests yet" reading, not a false-zero fabrication (there is
+  // no ambiguity here: zero requests genuinely means a 0% rate is the
+  // only correct answer, unlike e.g. inventory's totalCrafted, which
+  // has no real source at all).
+  assert.equal(text(window, "#soc-success"), "0%");
+  assert.equal(text(window, "#soc-requests"), "0");
+});
+
+test("renderSystemServicesTable shows an 'Unavailable' row, not an empty table, when the Prometheus source itself is unavailable", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, {
+    getPrometheusHealth: async () => unavailable("request_failed", "ops.health.prometheus")
+  });
+  runAddon(window);
+  await flushAsync();
+
+  const rows = window.document.querySelectorAll("#noc-system-service-body tr");
+  assert.equal(rows.length, 1);
+  assert.match(rows[0].textContent, /Unavailable/i);
+});
+
+test("renderSystemServicesTable shows the 'Not started' row and reveals the CTA note when the metrics stack is not running", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, {
+    getPrometheusHealth: async () => live({ status: "planned", domain: "prometheus", reason: "metrics_stack_not_running", message: "not running", summary: {} })
+  });
+  runAddon(window);
+  await flushAsync();
+
+  const rows = window.document.querySelectorAll("#noc-system-service-body tr");
+  assert.equal(rows.length, 1);
+  assert.match(rows[0].textContent, /Not started/i);
+  assert.equal(window.document.querySelector("#noc-metrics-cta").hidden, false, "the 'run dune metrics start' CTA must be revealed when the stack is not running");
+});
+
+test("renderSystemServicesTable renders a real row per known service plus any additional unknown service, with real up/down status", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, {
+    getPrometheusHealth: async () => live({
+      healthy: true,
+      targets: { active: 5, inactive: 2, pending: 0, total: 7 },
+      services: {
+        "dune-prometheus": "up", "dune-node": "up", "dune-postgres": "down",
+        "dune-rabbitmq-admin": "up", "dune-rabbitmq-game": "up", "dune-cadvisor": "up",
+        "dune-alertmanager": "up"
+      },
+      summary: { avgCpuPercent: 12.5, avgMemoryMb: 256, totalRestarts: null }
+    })
+  });
+  runAddon(window);
+  await flushAsync();
+
+  const rows = Array.from(window.document.querySelectorAll("#noc-system-service-body tr"));
+  assert.equal(rows.length, 7, "6 known services + 1 additional unknown service (dune-alertmanager) not in the known-services list");
+  const postgresRow = rows.find((r) => r.textContent.includes("Postgres Exporter"));
+  assert.match(postgresRow.textContent, /down/i, "must show the real down status, not a fabricated up");
+  const unknownRow = rows.find((r) => r.textContent.includes("dune-alertmanager"));
+  assert.ok(unknownRow, "an additional service not in the known-services label map must still get its own row, keyed by its raw job name");
+});
+
+test("renderFarmSummary shows real farm totals, ready/alive counts, and connected-player count when live", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, {
+    getOpsHealth: async () => live({ summary: { players: { total: 5, onlineStatus: { Online: 3, Offline: 2 } }, farms: { total: 4, ready: 3, alive: 4 } } })
+  });
+  runAddon(window);
+  await flushAsync();
+
+  assert.equal(text(window, "#noc-farms-total"), "4");
+  assert.equal(text(window, "#noc-farms-ready"), "3 / 4");
+  assert.equal(text(window, "#noc-farms-players"), "3", "falls back to totals.online when totals.connectedPlayers is not present in this aggregate shape");
+});
+
+// Regression pin for issue #139: incomingS2s/outgoingS2s are never
+// actually populated by normalizeOpsHealth() (a real field-name
+// mismatch against Core's actual incomingS2SConnections/
+// outgoingS2SConnections casing) -- this test documents the CURRENT,
+// known-broken behavior (always "—") rather than asserting a fix that
+// does not exist yet. If/when #139 is fixed, this test's expected value
+// must change to a real number, not stay "—" -- do not "fix" this test
+// by leaving it expecting a dash forever.
+test("renderFarmSummary's S2S Connections field is currently always '—' (known bug, tracked separately as issue #139)", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, {
+    getOpsHealth: async () => live({ summary: { players: { total: 1 }, farms: { total: 1, ready: 1, alive: 1 } } })
+  });
+  runAddon(window);
+  await flushAsync();
+
+  assert.equal(text(window, "#noc-farms-s2s"), "—", "documents the current, known-broken behavior -- see issue #139 for the real fix");
+});
+
+test("renderFarmSummary shows honest zero/dash defaults, not a throw, when the snapshot has no totals at all", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, {
+    getOpsHealth: async () => unavailable("request_failed", "ops.health.*")
+  });
+  runAddon(window);
+  await flushAsync();
+
+  assert.equal(text(window, "#noc-farms-total"), "0");
+  assert.equal(text(window, "#noc-farms-ready"), "0 / 0");
+});
+
+test("renderKpis shows dashes, not 0/NaN, for active rate and average level when the OPS health source is unavailable", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, {
+    getOpsHealth: async () => unavailable("request_failed", "ops.health.*")
+  });
+  runAddon(window);
+  await flushAsync();
+
+  assert.equal(text(window, "#kpi-active-rate"), "—");
+  assert.equal(text(window, "#kpi-average-level"), "—");
+  assert.equal(text(window, "#kpi-top-faction"), "—");
+  assert.equal(text(window, "#kpi-top-guild"), "—");
+});
+
+test("renderKpis computes a real active rate and shows the real top faction/guild when live", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, {
+    getOpsHealth: async () => live({
+      summary: {
+        players: {
+          total: 10,
+          onlineStatus: { Online: 7, Offline: 3 },
+          factions: { Atreides: 6, Fremen: 4 },
+          guilds: { "Sietch Patrol": 5, "Industrial Wing": 5 },
+          averageLevel: 42.6
+        },
+        farms: { total: 1, ready: 1, alive: 1 }
+      }
+    })
+  });
+  runAddon(window);
+  await flushAsync();
+
+  assert.equal(text(window, "#kpi-active-rate"), "70%", "must compute the real online/total ratio (7/10), not a fabricated rate");
+  assert.equal(text(window, "#kpi-average-level"), "43", "must round the real average level, not truncate or fabricate it");
+  assert.equal(text(window, "#kpi-top-faction"), "Atreides", "must pick the real highest-count faction (6 > 4), not the first key");
+  assert.equal(text(window, "#kpi-top-guild"), "Sietch Patrol", "when tied (5 vs 5), must pick the first-encountered key deterministically, not throw or pick randomly");
+});
+
+test("renderKpis shows a dash for average level (never a fabricated 0) when Core's aggregate omits it entirely", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, {
+    getOpsHealth: async () => live({ summary: { players: { total: 3, onlineStatus: { Online: 1, Offline: 2 } }, farms: { total: 1, ready: 1, alive: 1 } } })
+  });
+  runAddon(window);
+  await flushAsync();
+
+  assert.equal(text(window, "#kpi-average-level"), "—", "averageLevel has no real source in this payload and must never render a fabricated 0");
+  assert.notEqual(text(window, "#kpi-average-level"), "0");
+});
