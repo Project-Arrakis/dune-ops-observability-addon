@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Test coverage for `renderLocation`, `renderSoc`,
+  `renderSystemServicesTable`, `renderFarmSummary`, and `renderKpis`
+  (#138).** These 5 render functions had zero DOM-asserting test
+  coverage despite being real, currently-shipped panels — closes
+  issue #114 (which named 2 functions removed in the #133 rebuild and
+  never mentioned the real current gaps). 15 new tests, each
+  independently verified to actually fail when its target function's
+  behavior is broken (not just asserted to pass with the fix in place)
+  — including a real, if subtle, behavior pin for `renderLocation`'s
+  `activeMaps`-vs-`playerDensity` fallback (only triggers when
+  `activeMaps` is genuinely absent, not merely an empty array), and a
+  documented regression pin for the known S2S-metric bug (issue #139)
+  so this test suite doesn't silently start expecting the bug to stay
+  broken forever once #139 actually ships a fix.
+
 ### Fixed
 - **AAA/NOC Infra/Audit tabs hidden from primary nav; Diag moved to a
   secondary link (#137).** These 3 tabs are permanently non-functional
