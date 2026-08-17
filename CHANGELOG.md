@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **`faction-tagger.js`'s spice keyword scan no longer bleeds outside the Spice Melange tab (#141).** The scanner previously ran document-wide with no scoping — any element anywhere whose text happened to contain "spice"/"melange" (e.g. the Economy tab's "Spice Tokens" currency, Inventory's `spice_ore_001`/`spice_portion` item IDs) got tagged `data-tagged-spice` and forced into the Spice Melange tab's purple palette via `addon.css`'s unscoped `[data-tagged-spice] *` rule, with zero relationship to the actual Spice Melange feature. The spice keyword scan is now scoped to only tag elements inside `.tab-content[data-tab="spice"]` — matching that tab's own existing, correct `.tab-content[data-spice]` amber-theming scope. Faction keyword tagging (Atreides/Harkonnen row coloring on the Activity/Combat tabs) is unaffected — it has no reported cross-tab bleed and is intentionally used across multiple tabs, not scoped to one.
+- **SOC tab's "Metrics Health" panel now human-scales host memory,
+  consistent with the Overview tab (#142).** Both panels read the same
+  underlying `ops.health.prometheus` field
+  (`summary.avgMemoryMb`), but the SOC tab previously showed a raw
+  unformatted integer (e.g. "16384 MB") while the Overview tab's Fleet
+  Overview panel already scaled the identical value to "16.4 GB" via
+  `formatBytesHuman()`. Now both tabs render the same value the same
+  way.
 - **Freshness badges no longer appear on permanently-inert placeholder
   tabs (#140).** `updateFreshnessBadges()` previously stamped a green
   "fresh · Ns ago" badge onto every `.section-heading` in the entire

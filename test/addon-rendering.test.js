@@ -240,7 +240,10 @@ test("renderPrometheus renders real target/service data when live, and a dash (n
   assert.equal(text(window, "#mtr-health"), "Healthy");
   assert.equal(text(window, "#mtr-targets"), "5 / 6");
   assert.equal(text(window, "#mtr-cpu"), "13.6%");
-  assert.equal(text(window, "#mtr-mem"), "15613 MB");
+  // #142: must be human-scaled via formatBytesHuman(), matching the
+  // Overview tab's Fleet Overview panel for this identical underlying
+  // field -- not a raw unformatted "15613 MB" integer.
+  assert.equal(text(window, "#mtr-mem"), "16.4 GB");
   // The real, verified-live reason this is always null today: Core's
   // cAdvisor configuration doesn't expose per-container restart counts
   // on this system (see addonOpsPrometheusHealth's own comment in
@@ -354,6 +357,32 @@ test("renderFleetRollup shows real combined fleet CPU/memory and host CPU/memory
   // bloat finding of showing raw unformatted MB integers (e.g.
   // "16384 MB" instead of "16.4 GB").
   assert.equal(text(window, "#fleet-host-mem"), "17.2 GB");
+});
+
+// #142: the Overview tab's Fleet Overview panel (#fleet-host-mem) and
+// the SOC tab's Metrics Health panel (#mtr-mem) both read the exact
+// same underlying field (ops.health.prometheus's summary.avgMemoryMb)
+// -- they must always show the identical, consistently-scaled value.
+// This was previously NOT true: Overview scaled it via
+// formatBytesHuman() while SOC showed the raw MB integer.
+test("host memory renders identically, human-scaled, on both the Overview and SOC tabs for the same underlying value (issue #142)", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, {
+    getPrometheusHealth: async () => live({
+      healthy: true,
+      targets: { active: 6, inactive: 0, pending: 0, total: 6 },
+      services: {},
+      summary: { avgCpuPercent: 22.5, avgMemoryMb: 16384, totalRestarts: null }
+    })
+  });
+  runAddon(window);
+  await flushAsync();
+
+  const overviewValue = text(window, "#fleet-host-mem");
+  const socValue = text(window, "#mtr-mem");
+  assert.equal(overviewValue, "17.2 GB");
+  assert.equal(socValue, "17.2 GB");
+  assert.equal(overviewValue, socValue, "the same underlying summary.avgMemoryMb field must render identically on both tabs, not a raw integer on one and a scaled value on the other");
 });
 
 test("renderFleetRollup shows dashes, not 0, when both container and host sources are unavailable", async () => {

@@ -1821,7 +1821,14 @@ function renderPrometheus(result) {
   setText(mtrTargetsEl, `${targets.active || 0} / ${targets.total || 0}`);
   const summary = d.summary || {};
   setText(mtrCpuEl, summary.avgCpuPercent !== null ? `${summary.avgCpuPercent}%` : "—");
-  setText(mtrMemEl, summary.avgMemoryMb !== null ? `${summary.avgMemoryMb} MB` : "—");
+  // #142: use the same formatBytesHuman() scaling as the Overview tab's
+  // Fleet Overview panel for this identical underlying field
+  // (summary.avgMemoryMb, from the same ops.health.prometheus source) --
+  // previously showed a raw unformatted MB integer here (e.g.
+  // "16384 MB") while Overview already scaled the same number to
+  // "16.4 GB", an inconsistency flagged in the 2026-08-17 eight-hats
+  // review (Finding M-6).
+  setText(mtrMemEl, summary.avgMemoryMb !== null && summary.avgMemoryMb !== undefined ? formatBytesHuman(summary.avgMemoryMb * 1024 * 1024) : "—");
   // totalRestarts is a real "not currently obtainable" null on every
   // known deployment today (Core's cAdvisor configuration doesn't expose
   // per-container metrics — see dune-awakening-selfhost-docker's
