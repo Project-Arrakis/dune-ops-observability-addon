@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **NOC Overview: per-container resource grid (#133, PR 1 of 3).** New
+  "Containers" panel replaces the permanently-`"—"` "Server Resources"
+  panel — one tile per container this deployment manages (CPU%, memory
+  used/limit with a meter, network I/O, disk I/O, health status),
+  scoped to this project only via `ops.health.containers` (backed by
+  `dune-awakening-selfhost-docker`'s now-fixed, async, project-scoped
+  `addonOpsContainerHealth()` — see `#240`/`#244` and `#246`/`#301` for
+  the two real Core-side fixes this depends on, both merged and
+  CI-green before this PR started). New reusable `.meter` CSS component
+  (pure CSS horizontal bar, no canvas/chart library) for any bounded
+  0-100% metric. Family-specific extra metrics for Postgres/RabbitMQ
+  containers land in a follow-up PR (#133, PR 2); a fleet-level rollup
+  strip and removal of the "Service Health Map" defect (#77) land in
+  PR 3. See `docs/design/noc-overview-rebuild-l1-design-2026-08-17.md`
+  for the full design.
+
 ### Fixed
 - **`enforce_admins` was `false` on `main`'s branch protection, meaning
   required status checks did not actually apply to admin/owner direct

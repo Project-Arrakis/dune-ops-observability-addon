@@ -243,6 +243,80 @@ test("renderPrometheus renders real target/service data when live, and a dash (n
   assert.notEqual(text(window, "#mtr-restarts"), "0");
 });
 
+// ── #133: NOC Overview rebuild — per-container metrics grid ──
+
+test("renderContainerGrid shows an unavailable note, not an empty grid pretending to be a real zero-container result, when the source is unavailable", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, {
+    getContainerHealth: async () => unavailable("request_failed", "ops.health.containers")
+  });
+  runAddon(window);
+  await flushAsync();
+
+  const grid = window.document.querySelector("#container-grid");
+  const note = window.document.querySelector("#container-grid-availability-note");
+  assert.equal(grid.hidden, true, "grid must be hidden, not rendered empty, when unavailable");
+  assert.equal(note.hidden, false);
+  assert.match(note.textContent, /not available/i);
+});
+
+test("renderContainerGrid renders one tile per real container, with real metric text, when live", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, {
+    getContainerHealth: async () => live({
+      containers: [
+        { name: "dune-postgres", cpu: "3.40%", mem: "412MiB", memLimit: "2GiB", netIO: "12kB / 4kB", blockIO: "1.2MB / 340kB", status: "Up 2 hours (healthy)" },
+        { name: "dune-rmq-game", cpu: "71.00%", mem: "1.2GiB", memLimit: "1.5GiB", netIO: "340kB / 88kB", blockIO: "4.1MB / 900kB", status: "Up 2 hours" }
+      ]
+    })
+  });
+  runAddon(window);
+  await flushAsync();
+
+  const grid = window.document.querySelector("#container-grid");
+  assert.equal(grid.hidden, false);
+  const tiles = grid.querySelectorAll(".container-tile");
+  assert.equal(tiles.length, 2, "must render exactly one tile per returned container");
+
+  const names = Array.from(tiles).map((t) => t.querySelector(".container-tile-name").textContent);
+  assert.deepEqual(names, ["dune-postgres", "dune-rmq-game"]);
+
+  const firstTile = tiles[0];
+  assert.match(firstTile.textContent, /3\.40%/, "must show the real CPU value from Core, not a reformatted/rounded one");
+  assert.match(firstTile.textContent, /412MiB/, "must show the real mem value from Core");
+});
+
+test("renderContainerGrid shows a real empty-state note (not a fabricated 'all healthy') when Core returns zero containers", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, {
+    getContainerHealth: async () => live({ containers: [] })
+  });
+  runAddon(window);
+  await flushAsync();
+
+  const grid = window.document.querySelector("#container-grid");
+  assert.equal(grid.hidden, false, "the grid itself is shown (this is a real, live, empty result -- not an unavailable one)");
+  assert.match(grid.textContent, /no containers were reported/i);
+});
+
+test("renderContainerGrid tiles never show the literal string 0% for a container's CPU when Core reports 0.00%", async () => {
+  // Distinguishes a real, live "0.00%" (idle container, genuinely zero
+  // load) from this addon's usual false-zero anti-pattern (an
+  // unavailable/missing field silently rendering as 0) -- 0.00% here
+  // must render as-is, verbatim from Core, not collapse to a dash.
+  const { window } = loadAddon();
+  installMockProvider(window, {
+    getContainerHealth: async () => live({
+      containers: [{ name: "dune-idle", cpu: "0.00%", mem: "4MiB", memLimit: "256MiB", netIO: "0B / 0B", blockIO: "0B / 0B", status: "Up 1 hour" }]
+    })
+  });
+  runAddon(window);
+  await flushAsync();
+
+  const tile = window.document.querySelector(".container-tile");
+  assert.match(tile.textContent, /0\.00%/, "a real, live 0.00% must render verbatim, not as a dash or omitted");
+});
+
 test("a rejected provider promise (not just an {status:'unavailable'} envelope) also renders as unavailable, not 0", async () => {
   // This is the exact defect this session found beyond the original gap
   // analysis: Promise.allSettled's rejection branch used to collapse to a
@@ -329,14 +403,15 @@ test("status banner reports a degraded source count instead of claiming all sour
     getInventory: async () => unavailable("not_implemented", "ops.inventory.summary"),
     getLocation: async () => unavailable("not_implemented", "ops.location.activity"),
     getSoc: async () => unavailable("not_implemented", "ops.soc.summary"),
-    getPrometheusHealth: async () => unavailable("not_implemented", "ops.health.prometheus")
+    getPrometheusHealth: async () => unavailable("not_implemented", "ops.health.prometheus"),
+    getContainerHealth: async () => unavailable("not_implemented", "ops.health.containers")
   });
   runAddon(window);
   await flushAsync();
 
   const status = text(window, "#status");
-  assert.doesNotMatch(status, /all .* sources online/i, "must not claim all sources are online when 5 of 9 are unavailable");
-  assert.match(status, /3 of 9/, "must report the real live/total source count");
+  assert.doesNotMatch(status, /all .* sources online/i, "must not claim all sources are online when 6 of 10 are unavailable");
+  assert.match(status, /3 of 10/, "must report the real live/total source count");
 });
 
 test("status banner correctly claims all sources online only when every source truly is", async () => {
@@ -351,12 +426,13 @@ test("status banner correctly claims all sources online only when every source t
     getInventory: async () => okData,
     getLocation: async () => okData,
     getSoc: async () => okData,
-    getPrometheusHealth: async () => okData
+    getPrometheusHealth: async () => okData,
+    getContainerHealth: async () => okData
   });
   runAddon(window);
   await flushAsync();
 
-  assert.match(text(window, "#status"), /all 9 observability sources online/i);
+  assert.match(text(window, "#status"), /all 10 observability sources online/i);
 });
 
 // ── Non-fabrication guardrail: unavailable sources must not appear in the diagnostics output as if they were real ──

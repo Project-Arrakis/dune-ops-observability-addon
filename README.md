@@ -96,6 +96,7 @@ Current bridge-backed actions (as called by `web/data-providers.js`, verified ag
 | `ops.location.activity` | Not implemented — addon calls it optimistically; provider returns `{status: "unavailable"}` | Location |
 | `ops.soc.summary` | Live | SOC |
 | `ops.health.prometheus` | Live, conditionally — real integration against this project's optional, opt-in Prometheus stack (`dune metrics start`); returns `{status: "unavailable", reason: "metrics_stack_not_running"}` when that stack isn't running (the common/default case), which the addon surfaces with a specific "not running" message distinct from "not implemented" | Prometheus/Metrics |
+| `ops.health.containers` | Live — per-container CPU/memory/network/disk-IO/status, scoped to this project's own containers only (`com.docker.compose.project` label match, `dune-awakening-selfhost-docker#240`/`#246`). An earlier attempt to wire this same action (2026-08-10, issue #117/#118) caused a real incident and was fully reverted (`22ad998`) before both real blocking defects (unscoped host-container exposure, missing labels on raw-`docker run` containers) were fixed upstream — see `docs/design/noc-overview-rebuild-l1-design-2026-08-17.md` for the full history | NOC Overview |
 
 `leadership.players.list` (used under the earlier `players:read` permission model, before the v0.3.0 upgrade to `ops:read`) is no longer called by any shipped panel and has been removed from this list; see `docs/METRICS-BRIDGE-ACTIONS.md` and the RFC history in `docs/RFC.md` for that migration's context.
 

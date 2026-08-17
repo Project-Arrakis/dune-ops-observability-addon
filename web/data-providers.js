@@ -37,6 +37,20 @@
     "ops.health.prometheus"
   ];
 
+  // #133 (NOC Overview rebuild, per-container metrics): backed by
+  // dune-awakening-selfhost-docker's addonOpsContainerHealth(), fixed
+  // (async, scoped to this project's own containers via
+  // com.docker.compose.project) in #240/#244 and #246/#301 before this
+  // action was wired into the addon -- see docs/design/
+  // noc-overview-rebuild-l1-design-2026-08-17.md for the full history,
+  // including why an EARLIER attempt to wire this exact action
+  // (issue #117/#118, 2026-08-10) caused a real incident and was fully
+  // reverted (22ad998) before this rebuild started from a clean, tested
+  // Core-side foundation.
+  const OPS_CONTAINER_HEALTH_ACTIONS = [
+    "ops.health.containers"
+  ];
+
   const samplePrometheusHealth = {
     healthy: true,
     targets: { active: 6, inactive: 0, pending: 0, total: 6 },
@@ -55,6 +69,21 @@
     }
   };
 
+  // Real container names verified directly against
+  // dune-awakening-selfhost-docker's own orchestration scripts (never
+  // guessed) -- see docs/design/noc-overview-rebuild-l1-design-2026-08-17.md.
+  // Shapes match addonOpsContainerHealth()'s real return value exactly
+  // (name/cpu/mem/memLimit/netIO/blockIO/status), post-#240/#246 fix.
+  const sampleContainerHealth = {
+    containers: [
+      { name: "dune-postgres", cpu: "3.40%", mem: "412MiB", memLimit: "2GiB", netIO: "12kB / 4kB", blockIO: "1.2MB / 340kB", status: "Up 2 hours (healthy)" },
+      { name: "dune-rmq-admin", cpu: "0.80%", mem: "128MiB", memLimit: "1GiB", netIO: "2kB / 1kB", blockIO: "0B / 0B", status: "Up 2 hours" },
+      { name: "dune-rmq-game", cpu: "7.10%", mem: "890MiB", memLimit: "1GiB", netIO: "340kB / 88kB", blockIO: "4.1MB / 900kB", status: "Up 2 hours" },
+      { name: "dune-server-survival-1", cpu: "52.30%", mem: "3.8GiB", memLimit: "8GiB", netIO: "1.2MB / 890kB", blockIO: "12MB / 3.4MB", status: "Up 2 hours" },
+      { name: "redblink-dune-docker-console", cpu: "1.20%", mem: "210MiB", memLimit: "1GiB", netIO: "8kB / 3kB", blockIO: "200kB / 40kB", status: "Up 2 hours" }
+    ]
+  };
+
   const ALL_ACTIONS = [].concat(
     OPS_HEALTH_ACTIONS,
     OPS_ACTIVITY_ACTIONS,
@@ -64,7 +93,8 @@
     OPS_INVENTORY_ACTIONS,
     OPS_LOCATION_ACTIONS,
     OPS_SOC_ACTIONS,
-    OPS_PROMETHEUS_ACTIONS
+    OPS_PROMETHEUS_ACTIONS,
+    OPS_CONTAINER_HEALTH_ACTIONS
   );
 
   const sampleOpsHealth = {
@@ -382,6 +412,9 @@
       },
       async getPrometheusHealth() {
         return previewResult(samplePrometheusHealth);
+      },
+      async getContainerHealth() {
+        return previewResult(sampleContainerHealth);
       }
     },
     bridge: {
@@ -423,6 +456,9 @@
       },
       async getPrometheusHealth() {
         return fetchLiveOrUnavailable("ops.health.prometheus");
+      },
+      async getContainerHealth() {
+        return fetchLiveOrUnavailable("ops.health.containers");
       }
     }
   };

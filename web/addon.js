@@ -17,7 +17,7 @@ var TAB_CACHE_TTL_MS = 60000;
 var _tabCache = new Map();
 var _activeProvider = null; // set by refreshAll(), read by _refreshTab()
 var _tabProviders = {
-  overview: ["opsHealth", "prometheus"],
+  overview: ["opsHealth", "prometheus", "containerHealth"],
   players:  ["opsHealth"],
   activity: ["activity"],
   combat:   ["combat"],
@@ -45,7 +45,8 @@ function _providerMethod(source) {
     inventory: "getInventory",
     location: "getLocation",
     soc: "getSoc",
-    prometheus: "getPrometheusHealth"
+    prometheus: "getPrometheusHealth",
+    containerHealth: "getContainerHealth"
   };
   return map[source];
 }
@@ -100,13 +101,14 @@ function _renderTabData(tabName, results) {
     case "overview":
       var opsHealth = get("opsHealth");
       var prom = get("prometheus");
+      var containerHealth = get("containerHealth");
       if (opsHealth) {
         var snap = normalizeOpsHealth(opsHealth);
         renderOpsAggregate(snap, new Date());
         renderNocService(_activeProvider, snap, new Date(), prom);
-        renderNocResources(snap, prom);
       }
       if (prom) renderPrometheus(prom);
+      renderContainerGrid(containerHealth);
       break;
     case "players":
       var oh = get("opsHealth");
@@ -292,13 +294,10 @@ const mtrAvailabilityEl = document.querySelector("#mtr-availability-note");
 
 const nocSystemServiceBodyEl = document.querySelector("#noc-system-service-body");
 const nocMetricsCtaEl = document.querySelector("#noc-metrics-cta");
-const nocInfraContainerBodyEl = document.querySelector("#noc-infra-container-body");
-const nocInfraAvailabilityEl = document.querySelector("#noc-infra-availability-note");
 const nocServiceBodyEl = document.querySelector("#noc-service-body");
-const nocCpuEl = document.querySelector("#noc-cpu");
-const nocMemEl = document.querySelector("#noc-mem");
-const nocDiskEl = document.querySelector("#noc-disk");
-const nocUptimeEl = document.querySelector("#noc-uptime");
+const containerGridEl = document.querySelector("#container-grid");
+const containerGridLoadingNoteEl = document.querySelector("#container-grid-loading-note");
+const containerGridAvailabilityNoteEl = document.querySelector("#container-grid-availability-note");
 const nocFarmsTotalEl = document.querySelector("#noc-farms-total");
 const nocFarmsReadyEl = document.querySelector("#noc-farms-ready");
 const nocFarmsPlayersEl = document.querySelector("#noc-farms-players");
@@ -719,14 +718,14 @@ async function refreshOpsHealth() {
 
     previousTotals = summary.totals;
     renderNocService(provider, snapshot, refreshedAt, null);
-    renderNocResources(snapshot, null);
+    renderFarmSummary(snapshot);
   } catch (error) {
     const refreshedAt = new Date();
     const unavailableSnapshot = normalizeOpsHealth(null);
     renderOpsAggregate(unavailableSnapshot, refreshedAt);
     const opsHealth = updateOpsHealth(provider, null, refreshedAt, error);
     renderNocService(provider, unavailableSnapshot, refreshedAt, null);
-    renderNocResources(unavailableSnapshot, null);
+    renderFarmSummary(unavailableSnapshot);
     writeStatus("Unable to read Release 0.3 OPS health data from the configured provider.", "status-warn");
     writeOutput({
       provider: provider ? provider.name : "unknown",
@@ -1277,38 +1276,204 @@ function renderNocService(provider, snapshot, refreshedAt, prometheusResult) {
   appendRow(nocServiceBodyEl, ["Provider Mode", isBridge ? "Live Bridge" : "Sample Data", provider ? provider.label : "unknown", "—"]);
 }
 
-function renderNocResources(snapshot, prometheusResult) {
+// Farm & Population Summary panel -- unrelated to the CPU/mem/disk/uptime
+// numbers previously shown in the now-removed "Server Resources" panel
+// (see renderContainerGrid() below, its real replacement). Kept as its
+// own function (was previously fused into renderNocResources(), which
+// this PR splits apart along with removing the dead host-resource half).
+function renderFarmSummary(snapshot) {
   const totals = (snapshot && snapshot.totals) || {};
   const s2s = totals.incomingS2s !== undefined ? `${totals.incomingS2s} in / ${totals.outgoingS2s} out` : "—";
   setText(nocFarmsTotalEl, totals.farms || 0);
   setText(nocFarmsReadyEl, `${totals.readyFarms || 0} / ${totals.aliveFarms || 0}`);
   setText(nocFarmsPlayersEl, totals.connectedPlayers !== undefined ? totals.connectedPlayers : totals.online || 0);
   setText(nocFarmsS2sEl, s2s);
+}
 
-  if (!prometheusResult || prometheusResult.status === "unavailable" ||
-      (prometheusResult.data && prometheusResult.data.status === "planned")) {
-    setText(nocCpuEl, "—");
-    setText(nocMemEl, "—");
-    setText(nocDiskEl, "—");
-    setText(nocUptimeEl, "—");
+// #133 (NOC Overview rebuild): renders one tile per container returned by
+// ops.health.containers, grouped by "family" (postgres/rabbitmq/generic)
+// -- base CPU/mem/net/block-IO/status on every tile; family-specific
+// metrics (added in a follow-up PR, #133's PR 2) appended only to
+// postgres/rabbitmq tiles. This tab-visible grid is the direct
+// replacement for the removed "Server Resources" panel (which only ever
+// showed 4 host-level numbers, permanently "—" for any install not
+// running the optional metrics stack) -- see docs/design/
+// noc-overview-rebuild-l1-design-2026-08-17.md for the full design.
+function renderContainerGrid(result) {
+  if (containerGridLoadingNoteEl) containerGridLoadingNoteEl.hidden = true;
+
+  if (!result || result.status === "unavailable") {
+    if (containerGridEl) containerGridEl.hidden = true;
+    if (containerGridAvailabilityNoteEl) {
+      containerGridAvailabilityNoteEl.hidden = false;
+      containerGridAvailabilityNoteEl.textContent = unavailableMessage(result);
+    }
     return;
   }
 
-  const d = prometheusResult.data || {};
-  const summary = d.summary || {};
+  const containers = (result.data && result.data.containers) || [];
+  if (containerGridAvailabilityNoteEl) containerGridAvailabilityNoteEl.hidden = true;
+  if (!containerGridEl) return;
 
-  if (d.healthy === false && d.error) {
-    setText(nocCpuEl, "—");
-    setText(nocMemEl, "—");
-    setText(nocDiskEl, "—");
-    setText(nocUptimeEl, "—");
+  containerGridEl.hidden = false;
+  containerGridEl.textContent = "";
+
+  if (containers.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "empty-state";
+    empty.textContent = "No containers were reported for this project. Is Docker running?";
+    containerGridEl.appendChild(empty);
     return;
   }
 
-  setText(nocCpuEl, summary.avgCpuPercent !== null && summary.avgCpuPercent !== undefined ? `${summary.avgCpuPercent}%` : "—");
-  setText(nocMemEl, summary.avgMemoryMb !== null && summary.avgMemoryMb !== undefined ? `${summary.avgMemoryMb} MB` : "—");
-  setText(nocDiskEl, summary.avgDiskPercent !== null && summary.avgDiskPercent !== undefined ? `${summary.avgDiskPercent}%` : "—");
-  setText(nocUptimeEl, summary.hostUptimeHours !== null && summary.hostUptimeHours !== undefined ? `${Math.round(summary.hostUptimeHours)}h` : "—");
+  for (const container of containers) {
+    containerGridEl.appendChild(renderContainerTile(container));
+  }
+}
+
+function containerHealthClass(container) {
+  const status = String((container && container.status) || "").toLowerCase();
+  if (!status || status === "unknown") return "unknown";
+  if (status.indexOf("unhealthy") !== -1 || status.indexOf("restarting") !== -1) return "crit";
+  if (status.indexOf("(health: starting)") !== -1) return "warn";
+  if (status.indexOf("up") === 0) return "ok";
+  return "unknown";
+}
+
+// Splits docker stats's "12.3MiB / 512MiB" MemUsage shape (already
+// pre-split into .mem/.memLimit by Core's mergeContainerHealth(), see
+// addonOpsContainerHealth() in duneDb.js) into a 0-100 percent for the
+// meter's width, or null if either side is missing/unparseable (a
+// generic tile with no memLimit -- e.g. a container with no memory
+// limit configured -- shows the raw value with no meter, never a
+// fabricated percent).
+function containerMemPercent(container) {
+  const used = parseByteSize(container && container.mem);
+  const limit = parseByteSize(container && container.memLimit);
+  if (used === null || limit === null || limit === 0) return null;
+  return Math.min(100, (used / limit) * 100);
+}
+
+// Parses docker's own human-readable size suffixes (B/kB/KiB/MB/MiB/GB/GiB)
+// -- exactly the units docker stats emits, not a general-purpose parser.
+function parseByteSize(value) {
+  const match = /^([\d.]+)\s*([kKmMgG]?i?B)$/.exec(String(value || "").trim());
+  if (!match) return null;
+  const num = parseFloat(match[1]);
+  if (!Number.isFinite(num)) return null;
+  const unit = match[2].toLowerCase();
+  const multipliers = { b: 1, kb: 1000, kib: 1024, mb: 1000 * 1000, mib: 1024 * 1024, gb: 1000 * 1000 * 1000, gib: 1024 * 1024 * 1024 };
+  const multiplier = multipliers[unit];
+  return multiplier ? num * multiplier : null;
+}
+
+function parseCpuPercent(value) {
+  const match = /^([\d.]+)%$/.exec(String(value || "").trim());
+  return match ? parseFloat(match[1]) : null;
+}
+
+// meterClass: which color tier a percent falls into. Thresholds are
+// deliberately generic-tile defaults (matches DuneContainerHighMemory's
+// 90% warn tier in runtime/metrics/rules/containers.yml -- no critical
+// tier exists there either, matching this addon's own no-invented-
+// thresholds rule from the L1 design doc). Family-specific meters (added
+// in #133's PR 2) pass their own warn/crit thresholds instead of using
+// this generic default.
+function meterClass(percent, warnAt = 90, critAt = null) {
+  if (percent === null || percent === undefined) return null;
+  if (critAt !== null && percent > critAt) return "crit";
+  if (percent > warnAt) return "warn";
+  return "ok";
+}
+
+function makeMeter(percent, warnAt, critAt) {
+  const wrap = document.createElement("div");
+  wrap.className = "meter";
+  if (percent === null || percent === undefined) {
+    wrap.setAttribute("aria-hidden", "true");
+    return wrap;
+  }
+  const fill = document.createElement("div");
+  const tier = meterClass(percent, warnAt, critAt);
+  fill.className = `meter__fill meter__fill--${tier || "ok"}`;
+  fill.style.width = `${Math.max(0, Math.min(100, percent))}%`;
+  wrap.appendChild(fill);
+  return wrap;
+}
+
+function makeMetricRow(label, valueText, percent, warnAt, critAt) {
+  const row = document.createElement("div");
+  row.className = "container-tile-metric";
+  const labelEl = document.createElement("span");
+  labelEl.className = "container-tile-metric-label";
+  labelEl.textContent = label;
+  const valueEl = document.createElement("span");
+  valueEl.className = "container-tile-metric-value";
+  valueEl.textContent = valueText;
+  row.appendChild(labelEl);
+  row.appendChild(valueEl);
+  if (percent !== undefined && percent !== null) {
+    row.classList.add("container-tile-metric--with-meter");
+    row.appendChild(makeMeter(percent, warnAt, critAt));
+  }
+  return row;
+}
+
+function renderContainerTile(container) {
+  const card = document.createElement("article");
+  const healthTier = containerHealthClass(container);
+  card.className = `container-tile container-tile--${healthTier}`;
+
+  const header = document.createElement("div");
+  header.className = "container-tile-header";
+  const dot = document.createElement("span");
+  dot.className = `container-tile-dot container-tile-dot--${healthTier}`;
+  dot.setAttribute("aria-hidden", "true");
+  const name = document.createElement("span");
+  name.className = "container-tile-name";
+  name.textContent = (container && container.name) || "unknown";
+  const status = document.createElement("span");
+  status.className = "container-tile-status";
+  status.textContent = (container && container.status) || "unknown";
+  header.appendChild(dot);
+  header.appendChild(name);
+  header.appendChild(status);
+  card.appendChild(header);
+
+  const cpuPercent = parseCpuPercent(container && container.cpu);
+  card.appendChild(makeMetricRow("CPU", (container && container.cpu) || "—", cpuPercent, 85));
+
+  const memPercent = containerMemPercent(container);
+  const memText = container && container.mem
+    ? (container.memLimit ? `${container.mem} / ${container.memLimit}` : container.mem)
+    : "—";
+  card.appendChild(makeMetricRow("Mem", memText, memPercent, 90));
+
+  const netRow = document.createElement("div");
+  netRow.className = "container-tile-metric";
+  const netLabel = document.createElement("span");
+  netLabel.className = "container-tile-metric-label";
+  netLabel.textContent = "Net";
+  const netValue = document.createElement("span");
+  netValue.className = "container-tile-metric-value";
+  netValue.textContent = (container && container.netIO) || "—";
+  netRow.appendChild(netLabel);
+  netRow.appendChild(netValue);
+  card.appendChild(netRow);
+
+  const blockRow = document.createElement("div");
+  blockRow.className = "container-tile-metric";
+  const blockLabel = document.createElement("span");
+  blockLabel.className = "container-tile-metric-label";
+  blockLabel.textContent = "Disk I/O";
+  const blockValue = document.createElement("span");
+  blockValue.className = "container-tile-metric-value";
+  blockValue.textContent = (container && container.blockIO) || "—";
+  blockRow.appendChild(blockLabel);
+  blockRow.appendChild(blockValue);
+  card.appendChild(blockRow);
+
+  return card;
 }
 
 const SOC_METRIC_ELS = [socHealthEl, socRequestsEl, socErrorsEl, socSuccessEl];
@@ -1380,7 +1545,7 @@ function renderPrometheus(result) {
   }
 }
 
-const SOURCE_NAMES = ["opsHealth", "activity", "combat", "resources", "economy", "inventory", "location", "soc", "prometheus"];
+const SOURCE_NAMES = ["opsHealth", "activity", "combat", "resources", "economy", "inventory", "location", "soc", "prometheus", "containerHealth"];
 
 // Promise.allSettled's rejection branch previously collapsed to a bare `{}`
 // (F-1/F-4's root cause for this call site): a rejected getXxx() call (e.g.
@@ -1415,11 +1580,12 @@ async function refreshAll() {
       _activeProvider.getInventory ? _activeProvider.getInventory() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null)),
       _activeProvider.getLocation ? _activeProvider.getLocation() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null)),
       _activeProvider.getSoc ? _activeProvider.getSoc() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null)),
-      _activeProvider.getPrometheusHealth ? _activeProvider.getPrometheusHealth() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null))
+      _activeProvider.getPrometheusHealth ? _activeProvider.getPrometheusHealth() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null)),
+      _activeProvider.getContainerHealth ? _activeProvider.getContainerHealth() : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null))
     ]);
 
     const sourceResults = results.map(settledToSourceResult);
-    const [opsHealth, activity, combat, resources, economy, inventory, location, soc, prometheus] = sourceResults;
+    const [opsHealth, activity, combat, resources, economy, inventory, location, soc, prometheus, containerHealth] = sourceResults;
 
     // Populate _tabCache so tab switches don't re-fetch data already loaded
     var cacheAt = Date.now();
@@ -1441,7 +1607,8 @@ async function refreshAll() {
     renderSoc(soc);
     renderPrometheus(prometheus);
     renderNocService(_activeProvider, snapshot, refreshedAt, prometheus);
-    renderNocResources(snapshot, prometheus);
+    renderFarmSummary(snapshot);
+    renderContainerGrid(containerHealth);
 
     const opsHealthResult = updateOpsHealth(_activeProvider, snapshot.available ? summary.totals : null, refreshedAt, snapshot.available ? null : new Error("ops.health.* unavailable"));
 
