@@ -317,6 +317,96 @@ test("renderContainerGrid tiles never show the literal string 0% for a container
   assert.match(tile.textContent, /0\.00%/, "a real, live 0.00% must render verbatim, not as a dash or omitted");
 });
 
+// ── #133 PR 3: fleet-level rollup strip ──
+
+test("renderFleetRollup shows real combined fleet CPU/memory and host CPU/memory, derived arithmetically from the same per-container data the grid below it shows", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, {
+    getContainerHealth: async () => live({
+      containers: [
+        { name: "dune-postgres", cpu: "10.00%", mem: "500MB", memLimit: "2GB", netIO: "0B", blockIO: "0B", status: "Up 1 hour" },
+        { name: "dune-rmq-game", cpu: "5.00%", mem: "300MB", memLimit: "1GB", netIO: "0B", blockIO: "0B", status: "Up 1 hour" }
+      ]
+    }),
+    getPrometheusHealth: async () => live({
+      healthy: true,
+      targets: { active: 6, inactive: 0, pending: 0, total: 6 },
+      services: {},
+      summary: { avgCpuPercent: 22.5, avgMemoryMb: 16384, totalRestarts: null }
+    })
+  });
+  runAddon(window);
+  await flushAsync();
+
+  assert.equal(text(window, "#fleet-containers-up"), "2 / 2");
+  assert.equal(text(window, "#fleet-cpu"), "15%", "must be the real sum of both containers' CPU (10.00 + 5.00), not a separately-computed value");
+  assert.equal(text(window, "#fleet-mem"), "800.0 MB", "must be the real sum of both containers' memory (500MB + 300MB)");
+  assert.equal(text(window, "#fleet-host-cpu"), "22.5%");
+  // 16384 MB must be scaled to GB, fixing the real, previously-reported
+  // bloat finding of showing raw unformatted MB integers (e.g.
+  // "16384 MB" instead of "16.4 GB").
+  assert.equal(text(window, "#fleet-host-mem"), "17.2 GB");
+});
+
+test("renderFleetRollup shows dashes, not 0, when both container and host sources are unavailable", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, {
+    getContainerHealth: async () => unavailable("request_failed", "ops.health.containers"),
+    getPrometheusHealth: async () => unavailable("metrics_stack_not_running", "ops.health.prometheus")
+  });
+  runAddon(window);
+  await flushAsync();
+
+  assert.equal(text(window, "#fleet-containers-up"), "—");
+  assert.equal(text(window, "#fleet-cpu"), "—");
+  assert.equal(text(window, "#fleet-mem"), "—");
+  assert.equal(text(window, "#fleet-host-cpu"), "—");
+  assert.equal(text(window, "#fleet-host-mem"), "—");
+});
+
+// ── #133 PR 3: removed "Bridge & Data Sources" panel (issue #77 fix) ──
+
+test("the removed 'Bridge & Data Sources' table no longer exists in the DOM (issue #77 -- replaced by real per-container data)", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, {});
+  runAddon(window);
+  await flushAsync();
+
+  assert.equal(window.document.querySelector("#noc-service-body"), null, "the old bookkeeping table (OPS Health Bridge/Player Aggregate/Farm Aggregate rows unrelated to its own 'named services' promise) must be gone, not just relabeled");
+});
+
+// ── #133 PR 3: scoped auto-refresh (never runs in this test harness's non-iframe jsdom window) ──
+
+test("the auto-refresh timer never starts outside a real Console iframe (window.parent === window in this harness, same as direct-browser preview mode)", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, {});
+  runAddon(window);
+  await flushAsync();
+
+  assert.ok(window.DuneOpsAutoRefresh, "the auto-refresh control object must always be exposed, even when the timer itself is not running");
+  assert.equal(window.DuneOpsAutoRefresh.isRunning(), false, "must not start a real setInterval in a non-iframe context (this test harness has no parent window, exactly like direct-browser preview mode)");
+});
+
+test("triggerNow() (the auto-refresh function itself, called directly, not via a live timer) refreshes exactly the four scoped sources and none of the manual-refresh-only ones", async () => {
+  const { window } = loadAddon();
+  let activityCalled = false;
+  installMockProvider(window, {
+    getContainerHealth: async () => live({ containers: [{ name: "dune-postgres", cpu: "1%", mem: "1MB", memLimit: "1GB", netIO: "0B", blockIO: "0B", status: "Up" }] }),
+    getPostgresHealth: async () => live({ up: true, connections: { active: 1, max: 10 }, cacheHitRatioPercent: 99, deadlocksLast5m: 0 }),
+    getRabbitmqHealth: async () => live({ up: true, instances: [], queueDepth: 0, memPercent: 1, fdPercent: 1 }),
+    getPrometheusHealth: async () => live({ healthy: true, targets: { active: 1, inactive: 0, pending: 0, total: 1 }, services: {}, summary: { avgCpuPercent: 1, avgMemoryMb: 1, totalRestarts: null } }),
+    getActivity: async () => { activityCalled = true; return live({ totalPlayers: 1 }); }
+  });
+  runAddon(window);
+  await flushAsync();
+
+  activityCalled = false; // reset after the initial refreshAll() full dispatch
+  await window.DuneOpsAutoRefresh.triggerNow();
+
+  assert.equal(activityCalled, false, "the auto-refresh path must never call getActivity() or any other manual-refresh-only provider method");
+  assert.match(text(window, "#fleet-cpu"), /1%/, "the four scoped sources must still actually update the DOM when triggered directly");
+});
+
 // ── #133 PR 2: family-specific extra metrics on Postgres/RabbitMQ tiles ──
 
 test("the dune-postgres tile shows real connections/cache-hit/deadlocks data when ops.health.postgres is live", async () => {

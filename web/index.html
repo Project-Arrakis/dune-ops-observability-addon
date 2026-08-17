@@ -18,7 +18,7 @@
     does not govern.
   -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'; font-src 'self'; connect-src 'none'; frame-src 'self' http://localhost:3000; frame-ancestors 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; require-trusted-types-for 'script'">
-  <link rel="stylesheet" href="addon.css?v=1786944080">
+  <link rel="stylesheet" href="addon.css?v=1786945639">
 </head>
 <body>
   <main>
@@ -134,17 +134,33 @@
     <section class="card">
       <div class="section-heading">
         <div>
-          <p class="eyebrow">Data source health</p>
-          <h2>Bridge &amp; Data Sources</h2>
+          <p class="eyebrow">Fleet-level rollup</p>
+          <h2>Fleet Overview</h2>
         </div>
-        <p class="provider-label">Live · ops.health.*</p>
+        <p class="provider-label">Live · ops.health.containers + ops.health.prometheus</p>
       </div>
-      <p class="section-copy">Health of this addon's own connection to the console bridge and the aggregate data sources it depends on. System service status is reported by Prometheus when the metrics stack is running. Data source status reflects the Console bridge connection. Both must be healthy for reliable monitoring.</p>
-      <div class="table-wrap">
-        <table aria-label="Bridge and data source status">
-          <thead><tr><th scope="col">Component</th><th scope="col">State</th><th scope="col">Detail</th><th scope="col">Detail</th></tr></thead>
-          <tbody id="noc-service-body"></tbody>
-        </table>
+      <p class="section-copy">One number per resource, combined across every container this deployment manages, alongside host-level CPU/memory from Prometheus (when the optional metrics stack is running). This is the "rolled up" view — see the Containers panel below for the same data broken out per container.</p>
+      <div class="summary-grid" aria-label="Fleet resource rollup">
+        <article class="metric-card">
+          <span class="metric-label">Containers Up</span>
+          <strong id="fleet-containers-up">—</strong>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">Fleet CPU</span>
+          <strong id="fleet-cpu">—</strong>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">Fleet Memory</span>
+          <strong id="fleet-mem">—</strong>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">Host CPU</span>
+          <strong id="fleet-host-cpu">—</strong>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">Host Memory</span>
+          <strong id="fleet-host-mem">—</strong>
+        </article>
       </div>
     </section>
 
@@ -807,9 +823,9 @@
     </div><!-- /tab:diag -->
 
   </main>
-  <script src="faction-tagger.js?v=1786944080" integrity="sha384-ujc13Q/OEK7Rv2Q8kKgmnXVHIVSxWfZu9b21wuUakbGLC3ZYZpYrzPaU0aEmmGju"></script>
-  <script src="dune-addon-bridge.js?v=1786944080" integrity="sha384-X5CCvWUGvhbKTqZupV/KvEjGaEP8kenHCuLvdxeYfI/83L57CDK6uAB7XNdF/eMO"></script>
-  <script src="data-providers.js?v=1786944080" integrity="sha384-FrDypVkkqQLbU7ojp05/Vgw/bAnsa8tsK9XJEf/0JP4jLPUGkXNvXqvH0ReL16Gz"></script>
-  <script src="addon.js?v=1786944080" integrity="sha384-9sKdVDn68GEaxhSnesRLlIx9wb8zvT5kW7KdrurBmrYk79nEP5RrZvs3rJFUnMIV"></script>
+  <script src="faction-tagger.js?v=1786945639" integrity="sha384-ujc13Q/OEK7Rv2Q8kKgmnXVHIVSxWfZu9b21wuUakbGLC3ZYZpYrzPaU0aEmmGju"></script>
+  <script src="dune-addon-bridge.js?v=1786945639" integrity="sha384-X5CCvWUGvhbKTqZupV/KvEjGaEP8kenHCuLvdxeYfI/83L57CDK6uAB7XNdF/eMO"></script>
+  <script src="data-providers.js?v=1786945639" integrity="sha384-FrDypVkkqQLbU7ojp05/Vgw/bAnsa8tsK9XJEf/0JP4jLPUGkXNvXqvH0ReL16Gz"></script>
+  <script src="addon.js?v=1786945639" integrity="sha384-DCXWy96vQDIa03Jru0NCjY+R1SToyx7oVoRTY7AlmAtWyeTsSBwEEGc1CWXdtqkY"></script>
 </body>
 </html>

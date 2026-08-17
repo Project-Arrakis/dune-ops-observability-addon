@@ -36,6 +36,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   tile's warn/crit color always agrees with what would actually page an
   operator. Container → family detection is by container name pattern
   (`dune-postgres`, `dune-rmq-(admin|game)`), not image tag.
+- **NOC Overview: fleet-level rollup strip + scoped auto-refresh (#133,
+  PR 3 of 3, final PR of the rebuild).** New "Fleet Overview" panel:
+  containers up/total, combined fleet CPU/memory (derived from the same
+  per-container data the tiles below it show, not a separately computed
+  number), and host CPU/memory (human-scaled via a new
+  `formatBytesHuman()` helper — fixes a real, previously-reported bloat
+  finding where host memory rendered as a raw unformatted MB integer,
+  e.g. "16384 MB" instead of "16.4 GB"). The Containers panel (§1.5) and
+  this new panel, plus the existing System Services panel, now
+  auto-refresh every 15 seconds while the Overview tab is active — every
+  other tab/panel remains manual-refresh-only, per the addon's own M-3
+  design constraint (several existing queries are full-table-scan/
+  multi-join against `dune.*` game tables and are only safe without a
+  timer). The timer only starts inside a real Console iframe, never in
+  direct-browser preview mode or this repo's own test harness.
+
+### Fixed
+- **"Bridge & Data Sources" panel removed — issue #77 resolved via
+  Option B (the real thing, not a relabel).** The panel's own section
+  copy promised named infrastructure service status ("Postgres,
+  RabbitMQ, Director, Gateway, Survival_1, Overmap, TextRouter") but
+  `renderNocService()` actually rendered 5 unrelated addon-bookkeeping
+  rows. The panel is now gone entirely — the real per-container status
+  this copy always should have shown lives in the Containers panel
+  (`#133`, PR 1-2), including real `dune-postgres`/`dune-rmq-*` rows.
 
 ### Fixed
 - **`enforce_admins` was `false` on `main`'s branch protection, meaning
