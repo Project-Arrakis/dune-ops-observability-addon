@@ -26,6 +26,7 @@ repos, not duplicated here.
 
 - Eight-hats findings register (2026-08-07, v0.4.7): `compliance/eight-hats-findings-register.md`
 - Eight-hats findings register (2026-08-16, containerHealth/scope review): `compliance/eight-hats-findings-register-2026-08-16.md`
+- Eight-hats findings register (2026-08-17, full addon UX/architecture review, post-#133 rebuild): `compliance/eight-hats-findings-register-2026-08-17.md`
 - Release evidence bundles: `ops-observability/evidence/releases/`
 - Incident index (cross-repo): `~/projects/meta/Arrakis-Project/archive/INCIDENT-INDEX.md`
   (path corrected 2026-08-12 per that repo's own README -- this file

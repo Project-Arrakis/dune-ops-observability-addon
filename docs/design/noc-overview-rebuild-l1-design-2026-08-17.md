@@ -88,8 +88,17 @@ can show today:**
   unrelated to this work).
 - Player retention / session-history features (#98/M-4 — separate,
   already-scoped work).
-- AAA/AUDIT tab work (issues #94/#95 — still blocked on Core R3, still
-  correctly hidden/placeholder per the 2026-08-16 register).
+- AAA/AUDIT tab work (issues #94/#95 — still blocked on Core R3). **This
+  bullet originally, incorrectly, claimed these tabs were "correctly
+  hidden/placeholder per the 2026-08-16 register" -- found false during
+  the 2026-08-17 eight-hats review (Finding G-1,
+  `compliance/eight-hats-findings-register-2026-08-17.md`): the tabs
+  are still visible in primary navigation, unchanged since before the
+  2026-08-16 register; only their placeholder body content (not their
+  nav visibility) is what the register originally meant by "correctly
+  a placeholder." Corrected here rather than silently rewritten, per
+  this repo's own no-silent-rewrite convention. See issue #137 for the
+  still-open fix to actually hide them.
 - Game-server-instance tiles (`dune-server-*`) showing anything beyond
   the generic base metrics — no game-specific Prometheus exporter
   exists for the game server process itself (tick rate, simulation
