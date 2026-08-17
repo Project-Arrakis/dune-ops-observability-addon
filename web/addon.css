@@ -1063,3 +1063,143 @@ pre { overflow: auto; white-space: pre-wrap; font-size: var(--font-size-xs); }
   margin-left: 4px;
   cursor: help;
 }
+
+/* ── Container grid (#133, NOC Overview rebuild) ──
+   One tile per container, grouped visually by health state -- same
+   accent-border-only convention as .res-instance-card (border + name
+   color tinted, body stays neutral/readable), reusing this addon's
+   existing --status-live/--status-degraded/--status-down palette
+   rather than inventing a second color vocabulary. */
+.container-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.container-tile {
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  background: linear-gradient(180deg, var(--surface-3) 0%, var(--surface-2) 100%);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--transition-base), box-shadow var(--transition-base), border-color var(--transition-base);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.container-tile:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.container-tile--ok {
+  border-color: var(--status-live);
+}
+.container-tile--warn {
+  border-color: var(--status-degraded);
+}
+.container-tile--crit {
+  border-color: var(--status-down);
+}
+.container-tile--unknown {
+  border-color: var(--border-strong);
+}
+
+.container-tile-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.container-tile-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.container-tile-dot--ok { background: var(--status-live); box-shadow: 0 0 6px var(--status-live); }
+.container-tile-dot--warn { background: var(--status-degraded); box-shadow: 0 0 6px var(--status-degraded); }
+.container-tile-dot--crit { background: var(--status-down); box-shadow: 0 0 6px var(--status-down); }
+.container-tile-dot--unknown { background: var(--text-tertiary); }
+
+.container-tile-name {
+  font-weight: 700;
+  font-size: var(--font-size-base);
+  font-family: 'Dune Rise', 'Inter', ui-sans-serif, sans-serif;
+  letter-spacing: 0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.container-tile-status {
+  color: var(--text-tertiary);
+  font-size: var(--font-size-2xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.container-tile-metric {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--font-size-sm);
+}
+
+.container-tile-metric-label {
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.container-tile-metric-value {
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  grid-column: 2;
+}
+
+/* container-tile-metric--with-meter: the value sits above the bar --
+   the base grid above only governs label+value; the meter itself is a
+   full-width third element appended after, not a grid column, so it
+   isn't squeezed into the 1fr value column alongside the text. An
+   explicit modifier class (set in addon.js when a meter is appended)
+   rather than a :has() selector -- this addon has no existing :has()
+   usage and this keeps browser-support assumptions unchanged. */
+.container-tile-metric--with-meter {
+  grid-template-columns: 48px 1fr;
+  grid-template-rows: auto auto;
+}
+.container-tile-metric--with-meter .meter {
+  grid-column: 1 / -1;
+}
+
+/* ── Meter -- horizontal bar for any bounded 0-100% metric.
+   Pure CSS, no canvas/chart library (this addon's CSP is script-src
+   'self' with no external origins, and stays that way). Width is set
+   via inline style.width per instance -- the same existing CSP-allowed
+   inline-style pattern already used for the spice-field color-coded
+   cards (see index.html's own CSP comment). */
+.meter {
+  position: relative;
+  height: 6px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-1);
+  overflow: hidden;
+  margin-top: 2px;
+}
+.meter__fill {
+  height: 100%;
+  border-radius: inherit;
+  transition: width var(--transition-base);
+}
+.meter__fill--ok   { background: var(--status-live); }
+.meter__fill--warn { background: var(--status-degraded); }
+.meter__fill--crit { background: var(--status-down); }

@@ -18,7 +18,7 @@
     does not govern.
   -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'; font-src 'self'; connect-src 'none'; frame-src 'self' http://localhost:3000; frame-ancestors 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; require-trusted-types-for 'script'">
-  <link rel="stylesheet" href="addon.css?v=1786498525">
+  <link rel="stylesheet" href="addon.css?v=1786941639">
 </head>
 <body>
   <main>
@@ -151,30 +151,15 @@
     <section class="card">
       <div class="section-heading">
         <div>
-          <p class="eyebrow">Host machine</p>
-          <h2>Server Resources</h2>
+          <p class="eyebrow">Per-container resource usage</p>
+          <h2>Containers</h2>
         </div>
-        <p class="provider-label">Live · ops.health.*</p>
+        <p class="provider-label">Live · ops.health.containers</p>
       </div>
-      <p class="section-copy">CPU, memory, and disk usage on the machine hosting this server. These panels stay unavailable ("—") until the optional Prometheus metrics stack is running — see the Metrics tab.</p>
-      <div class="summary-grid" aria-label="Server resources">
-        <article class="metric-card">
-          <span class="metric-label">CPU (%)</span>
-          <strong id="noc-cpu">—</strong>
-        </article>
-        <article class="metric-card">
-          <span class="metric-label">Memory (MB)</span>
-          <strong id="noc-mem">—</strong>
-        </article>
-        <article class="metric-card">
-          <span class="metric-label">Disk (%)</span>
-          <strong id="noc-disk">—</strong>
-        </article>
-        <article class="metric-card">
-          <span class="metric-label">Uptime</span>
-          <strong id="noc-uptime">—</strong>
-        </article>
-      </div>
+      <p class="section-copy">Real-time CPU, memory, and network I/O for every container this deployment manages, scoped to this project only (never other, unrelated containers on the same host). Containers running Postgres or RabbitMQ show additional database/queue metrics below their base tile — see the Postgres/SOC tabs for narrative detail on those services. Requires <code>ops.health.containers</code> to be reachable (Docker must be available to the Console API); shows an explicit unavailable state otherwise, never fabricated data.</p>
+      <div id="container-grid-loading-note" class="availability-note">Loading container data…</div>
+      <div id="container-grid-availability-note" class="availability-note" hidden></div>
+      <div id="container-grid" class="container-grid" aria-label="Per-container resource usage" hidden></div>
     </section>
 
     <section class="card">
@@ -822,9 +807,9 @@
     </div><!-- /tab:diag -->
 
   </main>
-  <script src="faction-tagger.js?v=1786498525" integrity="sha384-ujc13Q/OEK7Rv2Q8kKgmnXVHIVSxWfZu9b21wuUakbGLC3ZYZpYrzPaU0aEmmGju"></script>
-  <script src="dune-addon-bridge.js?v=1786498525" integrity="sha384-X5CCvWUGvhbKTqZupV/KvEjGaEP8kenHCuLvdxeYfI/83L57CDK6uAB7XNdF/eMO"></script>
-  <script src="data-providers.js?v=1786498525" integrity="sha384-viXLKa5Urw31cxI0aY9C/yiGYikroVsg5MLKmve71ol5MSG1Qqa80/4zRqI77LHc"></script>
-  <script src="addon.js?v=1786498525" integrity="sha384-EgaCV2SCFPRGl7IUx1fF3UcLDkZCEdONUcMjGxKjwgxSBxWm0e5fJLvLxvJhmrga"></script>
+  <script src="faction-tagger.js?v=1786941639" integrity="sha384-ujc13Q/OEK7Rv2Q8kKgmnXVHIVSxWfZu9b21wuUakbGLC3ZYZpYrzPaU0aEmmGju"></script>
+  <script src="dune-addon-bridge.js?v=1786941639" integrity="sha384-X5CCvWUGvhbKTqZupV/KvEjGaEP8kenHCuLvdxeYfI/83L57CDK6uAB7XNdF/eMO"></script>
+  <script src="data-providers.js?v=1786941639" integrity="sha384-fb3c5gp+vsxUY2wzI9B3oSre/182kMtYpYUKxWV4WSdVDV9Jg3/8Ar3m+nzrkxiE"></script>
+  <script src="addon.js?v=1786941639" integrity="sha384-dOFk2Ojrmiie9uPks28zOjjksMEDjiAroMDq1FuX20fVHZz26mSQ2bG62VB0bJph"></script>
 </body>
 </html>

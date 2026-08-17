@@ -44,9 +44,21 @@ appendRow(nocServiceBodyEl, ["Provider Mode", isBridge ? "Live Bridge" : "Sample
 - `runningContainerNames()` (`dune-awakening-selfhost-docker/console/api/src/services/publicDirectory.js:401`) — a real `docker ps --format "{{.Names}}"` call, currently only used internally for `isBattlegroupRunning()`'s boolean check against 4 hardcoded container names (`dune-director`, `dune-server-gateway`, `dune-server-survival-1`, `dune-server-overmap`). This is real, live, per-container up/down data — but it is not currently exposed via any bridge action, and it only covers 4 of the 7 named services (no Postgres, RabbitMQ, or TextRouter container names in that list — verify against the actual `docker-compose.yml` service names before building on this, since the 4-name list may itself be incomplete/stale relative to what's actually deployed).
 - No existing Core function returns Postgres/RabbitMQ health specifically as a named row (Postgres connectivity is implicitly proven by every successful `duneDb` query succeeding at all, but there's no explicit "is Postgres reachable" health check function separate from just running a query).
 
-### 1.4 "Server Resources" panel (index.html:119-146) — correctly honest
+### 1.4 "Server Resources" panel — REMOVED 2026-08-17 (#133, PR 1 of 3)
 
-CPU (%) / Memory (MB) / Disk (%) / Uptime cards are unconditionally hardcoded to `"—"` in `renderNocResources()` (addon.js:800-804), matching the section copy's own disclaimer: *"Live CPU, memory, and disk metrics require Prometheus bridge (Core R2)."* No fabrication — this panel already does the honest thing. See `docs/tabs/SOC.md` for the real, currently-unused Prometheus stack that could eventually back this.
+This panel (previously permanently hardcoded to `"—"` for CPU/Memory/
+Disk/Uptime, described below as "correctly honest" at the time this
+audit was written) has been **removed and replaced** with a new
+"Containers" panel showing real, live, per-container CPU/memory/network
+I/O/status via `ops.health.containers` — see
+`docs/design/noc-overview-rebuild-l1-design-2026-08-17.md` for the full
+design and `#133` for the tracking issue. This section is left below,
+unedited, as a historical record of the panel that no longer exists;
+do not use it as a description of the current NOC Overview tab. A full
+rewrite of this document to match the rebuilt tab is scoped as part of
+`#133`'s PR 3.
+
+Original text (2026-07-26 audit, now historical): CPU (%) / Memory (MB) / Disk (%) / Uptime cards are unconditionally hardcoded to `"—"` in `renderNocResources()` (addon.js:800-804), matching the section copy's own disclaimer: *"Live CPU, memory, and disk metrics require Prometheus bridge (Core R2)."* No fabrication — this panel already does the honest thing. See `docs/tabs/SOC.md` for the real, currently-unused Prometheus stack that could eventually back this.
 
 ### 1.5 "Deployment Health" panel (index.html:148-175)
 
