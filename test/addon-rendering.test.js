@@ -1676,3 +1676,172 @@ test("renderOpsAggregate hides the partial-availability note when getOpsHealth()
   const note = window.document.querySelector("#ops-partial-note");
   assert.equal(note.hidden, true, "partial note is not the right UI for a total outage -- #empty-state already covers that case");
 });
+
+// ── #83 (M-5): PANEL_CONFIG must stay the single source of truth ──
+//
+// Exercises the REAL window.PANEL_CONFIG (not a re-declared copy) to
+// prove SOURCE_NAMES and _providerMethod() are genuinely derived from it,
+// not two independently-maintained lists that happen to currently agree.
+
+test("PANEL_CONFIG entries each have a unique key and a method that exists on the real bridge provider", async () => {
+  const { window } = loadAddon();
+  runAddon(window);
+  await flushAsync();
+
+  const config = window.PANEL_CONFIG;
+  assert.ok(Array.isArray(config) && config.length > 0, "PANEL_CONFIG must be a non-empty array");
+
+  const keys = config.map((p) => p.key);
+  assert.equal(new Set(keys).size, keys.length, "PANEL_CONFIG keys must be unique -- a duplicate key would silently overwrite an earlier source in refreshAll()'s bySource map");
+
+  const bridge = window.DuneOpsProviders.providers.bridge;
+  for (const panel of config) {
+    assert.equal(typeof bridge[panel.method], "function", `PANEL_CONFIG references method "${panel.method}" for key "${panel.key}", which must exist on providers.bridge`);
+  }
+});
+
+test("SOURCE_NAMES is derived from PANEL_CONFIG, not a second independent list", async () => {
+  const { window } = loadAddon();
+  runAddon(window);
+  await flushAsync();
+
+  const expectedNames = window.PANEL_CONFIG.map((p) => p.key);
+  const actualNames = Array.from(window.SOURCE_NAMES);
+  assert.equal(actualNames.length, expectedNames.length, "SOURCE_NAMES must have the same length as PANEL_CONFIG");
+  expectedNames.forEach((name, i) => {
+    assert.equal(actualNames[i], name, `SOURCE_NAMES[${i}] must match PANEL_CONFIG[${i}].key -- refreshAll()'s _tabCache population and the diagnostic \`sources\` output both rely on this alignment`);
+  });
+});
+
+test("_providerMethod() looks up PANEL_CONFIG rather than a separately-maintained map (#83)", async () => {
+  const { window } = loadAddon();
+  runAddon(window);
+  await flushAsync();
+
+  for (const panel of window.PANEL_CONFIG) {
+    assert.equal(window._providerMethod(panel.key), panel.method, `_providerMethod("${panel.key}") must return PANEL_CONFIG's own method value`);
+  }
+  assert.equal(window._providerMethod("not-a-real-source"), undefined, "an unknown source key must return undefined, not throw");
+});
+
+// ── #90: _refreshTab / _tabCache behavioral coverage ──
+//
+// Per the issue's own re-verification comment (2026-08-17): this lazy-
+// loading mechanism had ZERO direct test coverage before this PR --
+// only incidentally exercised through renderXxx() calls. These tests
+// call the real window._refreshTab()/_tabCache directly to prove fresh
+// dispatch, cache-hit skip, and cache-expiry re-dispatch all behave as
+// documented, and confirm the explicit, documented decision that
+// refreshAll() itself (initial load + manual Refresh button) intentionally
+// remains a "refresh everything" operation, NOT tab-scoped -- see the
+// code comment above `_tabProviders` in web/addon.js and this issue's
+// closing comment for why that scope was chosen over the literal "make
+// refreshAll() tab-aware" ask.
+
+test("_refreshTab() dispatches only the active tab's providers, not every provider", async () => {
+  const { window } = loadAddon();
+  let combatCalls = 0;
+  let activityCalls = 0;
+  installMockProvider(window, {
+    getCombat: async () => { combatCalls++; return live({ totalDeaths: 1 }); },
+    getActivity: async () => { activityCalls++; return live({ totalPlayers: 1 }); }
+  });
+  runAddon(window);
+  await flushAsync();
+
+  // Initial refreshAll() already dispatched every provider once (by
+  // design -- see #90's resolution). Reset counters to isolate what
+  // _refreshTab() itself does from here.
+  combatCalls = 0;
+  activityCalls = 0;
+  window._tabCache.clear();
+
+  await window._refreshTab("combat");
+
+  assert.equal(combatCalls, 1, "the combat tab's own provider must be dispatched");
+  assert.equal(activityCalls, 0, "a different tab's provider must NOT be dispatched by _refreshTab(\"combat\")");
+});
+
+test("_refreshTab() reuses a fresh cache entry instead of re-dispatching the provider", async () => {
+  const { window } = loadAddon();
+  let combatCalls = 0;
+  installMockProvider(window, {
+    getCombat: async () => { combatCalls++; return live({ totalDeaths: combatCalls }); }
+  });
+  runAddon(window);
+  await flushAsync();
+
+  window._tabCache.clear();
+  combatCalls = 0;
+
+  await window._refreshTab("combat");
+  assert.equal(combatCalls, 1, "first call with no cache entry must dispatch the provider");
+
+  await window._refreshTab("combat");
+  assert.equal(combatCalls, 1, "second call within the cache TTL must reuse the cached result, not dispatch again");
+});
+
+test("_refreshTab() re-dispatches once the cached entry is older than TAB_CACHE_TTL_MS", async () => {
+  const { window } = loadAddon();
+  let combatCalls = 0;
+  installMockProvider(window, {
+    getCombat: async () => { combatCalls++; return live({ totalDeaths: combatCalls }); }
+  });
+  runAddon(window);
+  await flushAsync();
+
+  window._tabCache.clear();
+  combatCalls = 0;
+
+  await window._refreshTab("combat");
+  assert.equal(combatCalls, 1);
+
+  // Simulate the cache entry having aged past TAB_CACHE_TTL_MS by
+  // rewriting its stored timestamp directly, rather than actually
+  // sleeping 60+ seconds in a test.
+  const cached = window._tabCache.get("combat");
+  window._tabCache.set("combat", { result: cached.result, at: cached.at - (window.TAB_CACHE_TTL_MS + 1000) });
+
+  await window._refreshTab("combat");
+  assert.equal(combatCalls, 2, "an expired cache entry must trigger a fresh dispatch");
+});
+
+test("_refreshTab() does nothing for a tab with no configured providers (e.g. grafana/diag)", async () => {
+  const { window } = loadAddon();
+  runAddon(window);
+  await flushAsync();
+
+  // Must not throw, and must not populate _tabCache with anything for a
+  // tab that legitimately has zero data sources.
+  await assert.doesNotReject(window._refreshTab("grafana"));
+});
+
+test("refreshAll() (initial load and the manual Refresh button) intentionally dispatches every provider regardless of the active tab -- #90's documented scope decision, not a bug", async () => {
+  const { window } = loadAddon();
+  let combatCalls = 0;
+  let activityCalls = 0;
+  installMockProvider(window, {
+    getCombat: async () => { combatCalls++; return live({ totalDeaths: 1 }); },
+    getActivity: async () => { activityCalls++; return live({ totalPlayers: 1 }); }
+  });
+  runAddon(window);
+  await flushAsync();
+
+  // Initial page load already ran refreshAll() once via loadAddon()+runAddon().
+  assert.ok(combatCalls >= 1, "initial load must dispatch the combat provider even though the Overview tab (not Combat) is active by default");
+  assert.ok(activityCalls >= 1, "initial load must dispatch the activity provider even though the Overview tab (not Activity) is active by default");
+
+  const combatBefore = combatCalls;
+  const activityBefore = activityCalls;
+
+  // Clicking the manual refresh button while a DIFFERENT tab (players)
+  // is active must still refresh combat/activity too -- this is the
+  // explicit, documented scope decision, not an oversight.
+  window.document.querySelector('[data-tab="players"]').click();
+  await flushAsync();
+  window.document.querySelector("#refresh-players").click();
+  await flushAsync();
+
+  assert.ok(combatCalls > combatBefore, "manual refresh must still dispatch combat's provider even while the Players tab is active");
+  assert.ok(activityCalls > activityBefore, "manual refresh must still dispatch activity's provider even while the Players tab is active");
+});
