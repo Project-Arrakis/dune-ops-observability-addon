@@ -1007,7 +1007,7 @@ function renderInstanceCard(instance) {
   metrics.className = "res-instance-metrics";
 
   const activeCard = document.createElement("article");
-  activeCard.className = "metric-card";
+  activeCard.className = "stat-card";
   const activeLabel = document.createElement("span");
   activeLabel.className = "metric-label";
   activeLabel.textContent = "Active Fields";
@@ -1025,7 +1025,7 @@ function renderInstanceCard(instance) {
   // this addon -- the title attribute spells that out for anyone who
   // hovers, rather than relying on the label alone to carry the caveat.
   const remainingCard = document.createElement("article");
-  remainingCard.className = "metric-card";
+  remainingCard.className = "stat-card";
   remainingCard.title = "Sum of spice in currently active fields as of the last refresh. Not a fixed or guaranteed total -- fields can spawn, despawn, or be harvested between refreshes.";
   const remainingLabel = document.createElement("span");
   remainingLabel.className = "metric-label";

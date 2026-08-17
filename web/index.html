@@ -18,7 +18,7 @@
     does not govern.
   -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'; font-src 'self'; connect-src 'none'; frame-src 'self' http://localhost:3000; frame-ancestors 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; require-trusted-types-for 'script'">
-  <link rel="stylesheet" href="addon.css?v=1786994696">
+  <link rel="stylesheet" href="addon.css?v=1786994997">
 </head>
 <body>
   <main>
@@ -74,19 +74,19 @@
     <div class="tab-content active" data-tab="overview">
 
     <section class="summary-grid" aria-label="OPS health totals">
-      <article class="metric-card">
+      <article class="stat-card">
         <span class="metric-label">Players</span>
         <strong id="metric-total">0</strong>
       </article>
-      <article class="metric-card">
+      <article class="stat-card">
         <span class="metric-label">Online</span>
         <strong id="metric-online">0</strong>
       </article>
-      <article class="metric-card">
+      <article class="stat-card">
         <span class="metric-label">Offline</span>
         <strong id="metric-offline">0</strong>
       </article>
-      <article class="metric-card">
+      <article class="stat-card">
         <span class="metric-label">Farm Sites</span>
         <strong id="metric-farms">0</strong>
       </article>
@@ -102,22 +102,22 @@
       </div>
       <p class="section-copy">Is the data on this page trustworthy right now? Shows whether the connection to the Console is healthy, how recently it last successfully refreshed, and whether the numbers changed meaningfully since your last check.</p>
       <div class="ops-health-grid" aria-label="OPS health foundation">
-        <article class="metric-card health-card">
+        <article class="stat-card stat-card--health">
           <span class="metric-label">Source Health</span>
           <strong id="ops-source-health">Unknown</strong>
           <p id="ops-source-health-note">Waiting for provider check.</p>
         </article>
-        <article class="metric-card health-card">
+        <article class="stat-card stat-card--health">
           <span class="metric-label">Freshness</span>
           <strong id="ops-freshness">—</strong>
           <p id="ops-freshness-note">Waiting for the first successful read.</p>
         </article>
-        <article class="metric-card health-card">
+        <article class="stat-card stat-card--health">
           <span class="metric-label">Aggregate Impact</span>
           <strong id="ops-player-impact">—</strong>
           <p id="ops-player-impact-note">Waiting for comparison data.</p>
         </article>
-        <article class="metric-card health-card">
+        <article class="stat-card stat-card--health">
           <span class="metric-label">Operator Status</span>
           <strong id="ops-operator-status">Unknown</strong>
           <p id="ops-operator-status-note">Waiting for provider result.</p>
@@ -155,23 +155,23 @@
       </div>
       <p class="section-copy">One number per resource, combined across every container this deployment manages, alongside host-level CPU/memory from Prometheus (when the optional metrics stack is running). This is the "rolled up" view — see the Containers panel below for the same data broken out per container.</p>
       <div class="summary-grid" aria-label="Fleet resource rollup">
-        <article class="metric-card">
+        <article class="stat-card">
           <span class="metric-label">Containers Up</span>
           <strong id="fleet-containers-up">—</strong>
         </article>
-        <article class="metric-card">
+        <article class="stat-card">
           <span class="metric-label">Fleet CPU</span>
           <strong id="fleet-cpu">—</strong>
         </article>
-        <article class="metric-card">
+        <article class="stat-card">
           <span class="metric-label">Fleet Memory</span>
           <strong id="fleet-mem">—</strong>
         </article>
-        <article class="metric-card">
+        <article class="stat-card">
           <span class="metric-label">Host CPU</span>
           <strong id="fleet-host-cpu">—</strong>
         </article>
-        <article class="metric-card">
+        <article class="stat-card">
           <span class="metric-label">Host Memory</span>
           <strong id="fleet-host-mem">—</strong>
         </article>
@@ -202,19 +202,19 @@
       </div>
       <p class="section-copy">How many farm servers exist and how many are ready/alive, alongside how many players are currently connected and how many server-to-server connections are active.</p>
       <div class="summary-grid" aria-label="Deployment health">
-        <article class="metric-card">
+        <article class="stat-card">
           <span class="metric-label">Total Farms</span>
           <strong id="noc-farms-total">0</strong>
         </article>
-        <article class="metric-card">
+        <article class="stat-card">
           <span class="metric-label">Ready / Alive</span>
           <strong id="noc-farms-ready">—</strong>
         </article>
-        <article class="metric-card">
+        <article class="stat-card">
           <span class="metric-label">Connected Players</span>
           <strong id="noc-farms-players">0</strong>
         </article>
-        <article class="metric-card">
+        <article class="stat-card">
           <span class="metric-label">S2S Connections</span>
           <strong id="noc-farms-s2s">—</strong>
         </article>
@@ -264,22 +264,22 @@
       </div>
       <p class="section-copy">Active-player rate, average character level, and the top faction and guild by member count — computed only from privacy-safe aggregate totals, never per-player data.</p>
       <div class="kpi-grid" aria-label="Read-only KPI panels">
-        <article class="kpi-card">
+        <article class="stat-card stat-card--kpi">
           <span class="metric-label">Active Rate</span>
           <strong id="kpi-active-rate">—</strong>
           <p id="kpi-active-rate-note">Waiting for player aggregate data.</p>
         </article>
-        <article class="kpi-card">
+        <article class="stat-card stat-card--kpi">
           <span class="metric-label">Average Level</span>
           <strong id="kpi-average-level">—</strong>
           <p id="kpi-average-level-note">Waiting for level aggregate data.</p>
         </article>
-        <article class="kpi-card">
+        <article class="stat-card stat-card--kpi">
           <span class="metric-label">Top Faction</span>
           <strong id="kpi-top-faction">—</strong>
           <p id="kpi-top-faction-note">Waiting for faction aggregate data.</p>
         </article>
-        <article class="kpi-card">
+        <article class="stat-card stat-card--kpi">
           <span class="metric-label">Top Guild</span>
           <strong id="kpi-top-guild">—</strong>
           <p id="kpi-top-guild-note">Waiting for guild aggregate data.</p>
@@ -303,39 +303,39 @@
       <p class="section-copy">How many players were active in the last hour, day, and week, plus new/returning/inactive counts and per-guild, per-faction, and per-map breakdowns.</p>
       <div id="act-availability-note" class="availability-note" hidden></div>
       <div class="summary-grid" aria-label="Activity metrics">
-        <article class="metric-card">
+        <article class="stat-card">
           <span class="metric-label">Total Players</span>
           <strong id="act-total">0</strong>
         </article>
-        <article class="metric-card">
+        <article class="stat-card">
           <span class="metric-label">Online</span>
           <strong id="act-online">0</strong>
         </article>
-        <article class="metric-card">
+        <article class="stat-card">
           <span class="metric-label">Currently Dead</span>
           <strong id="act-dead">0</strong>
         </article>
-        <article class="metric-card">
+        <article class="stat-card">
           <span class="metric-label">Active 1h</span>
           <strong id="act-1h">0</strong>
         </article>
-        <article class="metric-card">
+        <article class="stat-card">
           <span class="metric-label">Active 24h</span>
           <strong id="act-24h">0</strong>
         </article>
-        <article class="metric-card">
+        <article class="stat-card">
           <span class="metric-label">Active 7d</span>
           <strong id="act-7d">0</strong>
         </article>
-        <article class="metric-card">
+        <article class="stat-card">
           <span class="metric-label">Inactive</span>
           <strong id="act-inactive">0</strong>
         </article>
-        <article class="metric-card">
+        <article class="stat-card">
           <span class="metric-label">Returning</span>
           <strong id="act-returning">0</strong>
         </article>
-        <article class="metric-card">
+        <article class="stat-card">
           <span class="metric-label">New</span>
           <strong id="act-new">0</strong>
         </article>
@@ -376,19 +376,19 @@
       <p class="section-copy">Total deaths broken down by cause and map, plus hostile-NPC kill counts. PvP/PvE classification is not yet available — all deaths currently report as PvE, a known limitation, not an error.</p>
       <div id="cmb-availability-note" class="availability-note" hidden></div>
       <div class="summary-grid" aria-label="Combat metrics">
-        <article class="metric-card">
+        <article class="stat-card">
           <span class="metric-label">Total Deaths</span>
           <strong id="cmb-total">0</strong>
         </article>
-        <article class="metric-card">
+        <article class="stat-card">
           <span class="metric-label">PvP Deaths</span>
           <strong id="cmb-pvp" title="The death log schema does not distinguish PvP from PvE kills. All deaths currently report as PvE.">0</strong>
         </article>
-        <article class="metric-card">
+        <article class="stat-card">
           <span class="metric-label">PvE Deaths</span>
           <strong id="cmb-pve">0</strong>
         </article>
-        <article class="metric-card">
+        <article class="stat-card">
           <span class="metric-label">KD Ratio</span>
           <strong id="cmb-kd">0</strong>
         </article>
@@ -437,19 +437,19 @@
           <span id="dd-instance-count" class="res-map-instance-count"></span>
         </div>
         <div class="summary-grid" aria-label="Deep Desert summary">
-          <article class="metric-card">
+          <article class="stat-card">
             <span class="metric-label">Active Fields</span>
             <strong id="dd-active-fields">—</strong>
           </article>
-          <article class="metric-card" title="Sum of spice in currently active fields across all Deep Desert instances, as of the last refresh. Not a fixed or guaranteed total.">
+          <article class="stat-card" title="Sum of spice in currently active fields across all Deep Desert instances, as of the last refresh. Not a fixed or guaranteed total.">
             <span class="metric-label">Potential Spice</span>
             <strong id="dd-remaining-spice">—</strong>
           </article>
-          <article class="metric-card">
+          <article class="stat-card">
             <span class="metric-label">PvP Instances</span>
             <strong id="dd-pvp-instances">—</strong>
           </article>
-          <article class="metric-card">
+          <article class="stat-card">
             <span class="metric-label">PvE Instances</span>
             <strong id="dd-pve-instances">—</strong>
           </article>
@@ -470,19 +470,19 @@
           <span id="hb-instance-count" class="res-map-instance-count"></span>
         </div>
         <div class="summary-grid" aria-label="Hagga Basin summary">
-          <article class="metric-card">
+          <article class="stat-card">
             <span class="metric-label">Active Fields</span>
             <strong id="hb-active-fields">—</strong>
           </article>
-          <article class="metric-card" title="Sum of spice in currently active fields across all Hagga Basin sietches, as of the last refresh. Not a fixed or guaranteed total.">
+          <article class="stat-card" title="Sum of spice in currently active fields across all Hagga Basin sietches, as of the last refresh. Not a fixed or guaranteed total.">
             <span class="metric-label">Potential Spice</span>
             <strong id="hb-remaining-spice">—</strong>
           </article>
-          <article class="metric-card">
+          <article class="stat-card">
             <span class="metric-label">PvP Instances</span>
             <strong id="hb-pvp-instances">—</strong>
           </article>
-          <article class="metric-card">
+          <article class="stat-card">
             <span class="metric-label">PvE Instances</span>
             <strong id="hb-pve-instances">—</strong>
           </article>
@@ -508,23 +508,23 @@
       <p class="section-copy">How much in-game currency exists and who holds it, plus how many trade orders are active vs. fulfilled and how much tax/fees have been collected — all aggregate totals, no per-player detail.</p>
       <div id="eco-availability-note" class="availability-note" hidden></div>
       <div class="summary-grid" aria-label="Economy metrics">
-        <article class="metric-card">
+        <article class="stat-card">
           <span class="metric-label">Currency Holders</span>
           <strong id="eco-holders">0</strong>
         </article>
-        <article class="metric-card">
+        <article class="stat-card">
           <span class="metric-label">Total Supply</span>
           <strong id="eco-supply">0</strong>
         </article>
-        <article class="metric-card">
+        <article class="stat-card">
           <span class="metric-label">Active Orders</span>
           <strong id="eco-orders">0</strong>
         </article>
-        <article class="metric-card">
+        <article class="stat-card">
           <span class="metric-label">Fulfilled</span>
           <strong id="eco-fulfilled">0</strong>
         </article>
-        <article class="metric-card">
+        <article class="stat-card">
           <span class="metric-label">Tax/Fees</span>
           <strong id="eco-tax">0</strong>
         </article>
@@ -559,19 +559,19 @@
       <p class="section-copy">Total items and storage containers in use, broken down by item template, plus per-container storage load. Template IDs are game-internal identifiers (item-name lookup requires Core-side enrichment — planned for Core R3). "Total Crafted" has no real data source in this game version and always shows as unavailable.</p>
       <div id="inv-availability-note" class="availability-note" hidden></div>
       <div class="summary-grid" aria-label="Inventory metrics">
-        <article class="metric-card">
+        <article class="stat-card">
           <span class="metric-label">Total Items</span>
           <strong id="inv-items">0</strong>
         </article>
-        <article class="metric-card">
+        <article class="stat-card">
           <span class="metric-label">Inventories</span>
           <strong id="inv-invs">0</strong>
         </article>
-        <article class="metric-card">
+        <article class="stat-card">
           <span class="metric-label">Total Crafted</span>
           <strong id="inv-crafted" title="This metric has no real data source in the game database schema. It is intentionally always unavailable.">0</strong>
         </article>
-        <article class="metric-card">
+        <article class="stat-card">
           <span class="metric-label">Storage Used</span>
           <strong id="inv-storage-used">—</strong>
         </article>
@@ -612,11 +612,11 @@
       <p class="section-copy">Per-player real-time location tracking is intentionally not part of this addon's scope — that data already belongs to, and is shown by, the Console's own map. This tab will always report unavailable; that is not a bug or a temporary gap.</p>
       <div id="loc-availability-note" class="availability-note" hidden></div>
       <div class="summary-grid" aria-label="Location metrics">
-        <article class="metric-card">
+        <article class="stat-card">
           <span class="metric-label">Active Maps</span>
           <strong id="loc-map-count">0</strong>
         </article>
-        <article class="metric-card">
+        <article class="stat-card">
           <span class="metric-label">Total Markers</span>
           <strong id="loc-markers">0</strong>
         </article>
@@ -651,19 +651,19 @@
       <p class="section-copy">How many requests this addon's bridge connection has handled and how many failed, computed from a real in-memory counter — a rising error rate here usually means the Console or database is under strain, not this addon itself.</p>
       <div id="soc-availability-note" class="availability-note" hidden></div>
       <div class="summary-grid" aria-label="SOC metrics">
-        <article class="metric-card">
+        <article class="stat-card">
           <span class="metric-label">Platform Health</span>
           <strong id="soc-health">Unknown</strong>
         </article>
-        <article class="metric-card">
+        <article class="stat-card">
           <span class="metric-label">Bridge Requests</span>
           <strong id="soc-requests">0</strong>
         </article>
-        <article class="metric-card">
+        <article class="stat-card">
           <span class="metric-label">Bridge Errors</span>
           <strong id="soc-errors">0</strong>
         </article>
-        <article class="metric-card">
+        <article class="stat-card">
           <span class="metric-label">Success Rate</span>
           <strong id="soc-success">0%</strong>
         </article>
@@ -681,23 +681,23 @@
       <p class="section-copy">Health of the optional Prometheus/cAdvisor/node-exporter stack, including scrape-target status and average CPU/memory. Shows as unavailable unless the operator has run `dune metrics start` — that's expected, not a defect. Per-container restart counts are not currently obtainable on this deployment (a real cAdvisor limitation) and always show as unavailable, never a fabricated 0.</p>
       <div id="mtr-availability-note" class="availability-note" hidden></div>
       <div class="summary-grid" aria-label="Prometheus health">
-        <article class="metric-card">
+        <article class="stat-card">
           <span class="metric-label">Prometheus</span>
           <strong id="mtr-health">Unknown</strong>
         </article>
-        <article class="metric-card">
+        <article class="stat-card">
           <span class="metric-label">Targets</span>
           <strong id="mtr-targets">—</strong>
         </article>
-        <article class="metric-card">
+        <article class="stat-card">
           <span class="metric-label">Avg CPU</span>
           <strong id="mtr-cpu">—</strong>
         </article>
-        <article class="metric-card">
+        <article class="stat-card">
           <span class="metric-label">Avg Memory</span>
           <strong id="mtr-mem">—</strong>
         </article>
-        <article class="metric-card">
+        <article class="stat-card">
           <span class="metric-label">Restarts (24h)</span>
           <strong id="mtr-restarts" title="Per-container restart counts are not currently obtainable on this deployment (a cAdvisor configuration limitation).">—</strong>
         </article>
@@ -846,9 +846,9 @@
     </div><!-- /tab:diag -->
 
   </main>
-  <script src="faction-tagger.js?v=1786994696" integrity="sha384-uN44RmRtK0XOiamdDC0+QW4qcOIhP/PEZ0XCetjuDVt1NxV8cd0hzORAUvslLClg"></script>
-  <script src="dune-addon-bridge.js?v=1786994696" integrity="sha384-X5CCvWUGvhbKTqZupV/KvEjGaEP8kenHCuLvdxeYfI/83L57CDK6uAB7XNdF/eMO"></script>
-  <script src="data-providers.js?v=1786994696" integrity="sha384-FrDypVkkqQLbU7ojp05/Vgw/bAnsa8tsK9XJEf/0JP4jLPUGkXNvXqvH0ReL16Gz"></script>
-  <script src="addon.js?v=1786994696" integrity="sha384-aIEuJNoVXesUKhKJnIDKjHl6bEK0qGLZPBkkiOMOuPeNWNiheDzuY7t1BFy7LKM5"></script>
+  <script src="faction-tagger.js?v=1786994997" integrity="sha384-uN44RmRtK0XOiamdDC0+QW4qcOIhP/PEZ0XCetjuDVt1NxV8cd0hzORAUvslLClg"></script>
+  <script src="dune-addon-bridge.js?v=1786994997" integrity="sha384-X5CCvWUGvhbKTqZupV/KvEjGaEP8kenHCuLvdxeYfI/83L57CDK6uAB7XNdF/eMO"></script>
+  <script src="data-providers.js?v=1786994997" integrity="sha384-FrDypVkkqQLbU7ojp05/Vgw/bAnsa8tsK9XJEf/0JP4jLPUGkXNvXqvH0ReL16Gz"></script>
+  <script src="addon.js?v=1786994997" integrity="sha384-exMFR9ZcPxeNVzBoFuwjmSrK4vmafMSUFbiiMeVNavMb+yviCbkImtM50K6Db8ch"></script>
 </body>
 </html>
