@@ -1,91 +1,190 @@
 # Tab Architecture — NOC Overview
 
 **Data-tab attribute**: `overview` (default-active tab)
-**HTML**: `web/index.html:47-177`
-**Render entry point**: `refreshAll()` (`web/addon.js:880`) → `renderOpsAggregate()` (line 401), `renderNocService()` (line 788), `renderNocResources()` (line 800)
-
----
-
-## 1. Current implementation (verified)
-
-This tab has four panels, three of which currently work correctly and one that doesn't.
-
-### 1.1 "OPS health totals" summary grid (index.html:50-67)
-
-Four cards: Players / Online / Offline / Farm Sites. Populated by `renderOpsAggregate()` from `normalizeOpsHealth(opsHealth)`'s `.totals` object, which itself comes from the `ops.health.summary.v2` + `ops.health.players` + `ops.health.farms` bridge actions (all real, live — `duneDb.addonOpsHealthSummaryV2`).
-
-**Correct behavior confirmed**: when `snapshot.available` is `false` (the OPS health source itself is unavailable — a rejected/errored provider call), all four cards render `"—"`, not `0` (fixed in the F-1 refactor, `addon.js:405-414`). When the source is available but genuinely returns zero rows, the cards correctly show `0` with a distinct "live aggregate data, not placeholder content" empty-state note (visible on the Players tab, not this one — see `docs/tabs/PLAYERS.md`).
-
-### 1.2 "OPS Health Foundation" panel (index.html:69-100)
-
-Four cards: Source Health / Freshness / Aggregate Impact / Operator Status. Populated by `updateOpsHealth()` (`addon.js:314`), which computes operator-facing labels from `lastSuccessfulReadAt`, a rolling staleness threshold (`STALE_READ_THRESHOLD_MS = 5 * 60 * 1000`), and a player-count delta since the previous refresh (`playerDeltaLabel()`, line 301). This is addon-internal bookkeeping about the *addon's own read health*, not about the game server — an intentional and correctly-labeled distinction ("Source Health," not "Server Health").
-
-No defects found here.
-
-### 1.3 "Service Health Map" panel (index.html:102-117) — **real defect**
-
-**Section copy** (index.html:110): *"Service dependency status: Postgres, RabbitMQ, Director, Gateway, Survival_1, Overmap, TextRouter."*
-
-**What `renderNocService()` (addon.js:788-798) actually renders** — five rows, none of which are the services named above:
-
-```js
-appendRow(nocServiceBodyEl, ["OPS Health Bridge", isBridge ? "Connected" : "Preview", ...]);
-appendRow(nocServiceBodyEl, ["Player Aggregate", totals.total > 0 ? "Populated" : "No Data", ...]);
-appendRow(nocServiceBodyEl, ["Farm Aggregate", totals.farms > 0 ? "Populated" : "No Data", ...]);
-appendRow(nocServiceBodyEl, ["Data Freshness", lastSuccessfulReadAt ? "Current" : "Stale", ...]);
-appendRow(nocServiceBodyEl, ["Provider Mode", isBridge ? "Live Bridge" : "Sample Data", ...]);
-```
-
-**Impact**: an operator reading this panel's own description, then scanning the table for "is Postgres up," will not find that answer — the table shows something else entirely, with no indication the promise wasn't kept. This is not a fabricated *number* (nothing here is invented data presented as real), but it is a **broken promise about what the panel shows**, which is its own category of trust defect distinct from F-1's false-zero pattern.
-
-**Root cause**: this looks like a section-copy sentence that was written for an intended future data source (per-container/per-service health, matching `docker-compose.yml`'s actual service names) that was never built, and the placeholder rows that *were* built were never reconciled with the copy that describes them.
-
-**What real service-level data exists today** (verified):
-- `runningContainerNames()` (`dune-awakening-selfhost-docker/console/api/src/services/publicDirectory.js:401`) — a real `docker ps --format "{{.Names}}"` call, currently only used internally for `isBattlegroupRunning()`'s boolean check against 4 hardcoded container names (`dune-director`, `dune-server-gateway`, `dune-server-survival-1`, `dune-server-overmap`). This is real, live, per-container up/down data — but it is not currently exposed via any bridge action, and it only covers 4 of the 7 named services (no Postgres, RabbitMQ, or TextRouter container names in that list — verify against the actual `docker-compose.yml` service names before building on this, since the 4-name list may itself be incomplete/stale relative to what's actually deployed).
-- No existing Core function returns Postgres/RabbitMQ health specifically as a named row (Postgres connectivity is implicitly proven by every successful `duneDb` query succeeding at all, but there's no explicit "is Postgres reachable" health check function separate from just running a query).
-
-### 1.4 "Server Resources" panel — REMOVED 2026-08-17 (#133, PR 1 of 3)
-
-This panel (previously permanently hardcoded to `"—"` for CPU/Memory/
-Disk/Uptime, described below as "correctly honest" at the time this
-audit was written) has been **removed and replaced** with a new
-"Containers" panel showing real, live, per-container CPU/memory/network
-I/O/status via `ops.health.containers` — see
+**HTML**: `web/index.html` (overview tab body, `data-tab="overview"`)
+**Rebuilt**: 2026-08-17, issue `#133` — see
 `docs/design/noc-overview-rebuild-l1-design-2026-08-17.md` for the full
-design and `#133` for the tracking issue. This section is left below,
-unedited, as a historical record of the panel that no longer exists;
-do not use it as a description of the current NOC Overview tab. A full
-rewrite of this document to match the rebuilt tab is scoped as part of
-`#133`'s PR 3.
+design and `compliance/eight-hats-findings-register-2026-08-16.md` for
+the audit that scoped it. This document was fully rewritten alongside
+that rebuild (PR 3 of 3) to match the tab's real, current state —
+everything below describes the tab as of that rebuild, not the
+pre-2026-08-17 tab.
 
-Original text (2026-07-26 audit, now historical): CPU (%) / Memory (MB) / Disk (%) / Uptime cards are unconditionally hardcoded to `"—"` in `renderNocResources()` (addon.js:800-804), matching the section copy's own disclaimer: *"Live CPU, memory, and disk metrics require Prometheus bridge (Core R2)."* No fabrication — this panel already does the honest thing. See `docs/tabs/SOC.md` for the real, currently-unused Prometheus stack that could eventually back this.
-
-### 1.5 "Deployment Health" panel (index.html:148-175)
-
-Farm totals, ready/alive counts, connected players, S2S connection counts — all real, sourced from `addonOpsHealthFarms()`'s live query (`duneDb.js`, aggregating `dune.farm_state`). No defects found.
-
----
-
-## 2. Data flow (current, verified)
-
-```
-refreshAll() [addon.js:880]
-  → provider.getOpsHealth() [data-providers.js: bridge.getOpsHealth or sample.getOpsHealth]
-      → bridge: Promise.all([bridgeRequest("ops.health.summary.v2"), .players, .farms])
-      → sample: previewResult(sampleOpsHealth) fixture
-  → normalizeOpsHealth(result) [addon.js:258] → snapshot {available, totals, kpis, hasRows, ...}
-  → renderOpsAggregate(snapshot, refreshedAt) [addon.js:401] → populates §1.1's 4 cards + Players-tab table
-  → renderNocService(provider, snapshot, refreshedAt) [addon.js:788] → populates §1.3's table (defect: see above)
-  → renderNocResources(snapshot) [addon.js:800] → populates §1.4's 4 cards (correctly all "—")
-```
-
-**Server-side, verified**: `ops.health.summary`/`.v2`/`.players`/`.farms` are handled **only** by `server.js:609`'s addon-bridge action dispatch (`assertInstalledAddonPermission(config, id, "ops:read")`, the path used by installed third-party addons calling `POST /api/addons/bridge` from inside the Console iframe) — confirmed by direct search: these four action strings do not appear anywhere in `routes.js`/`adapter.js` (the Discord bot's adapter). This is a real, important distinction from the other four live actions (`ops.activity.summary` etc.), which *are* reachable both via the addon-bridge (`server.js`) and the Discord adapter (`opsProvider.js`/`routes.js`). In the addon's actual runtime (loaded inside the Console iframe via `web/dune-addon-bridge.js`'s `window.DuneAddon.request()`), this distinction doesn't matter — the addon always goes through the addon-bridge path, never the Discord adapter, regardless of which action it calls. It matters only if someone ever tries to make the Discord *bot* itself report OPS health data — that would require adding `ops.health.*` to `opsProvider.js`/`routes.js`, which does not exist today.
+**Render entry points**: `refreshAll()` (initial full load) and
+`_refreshTab("overview")` (tab-aware lazy load, same render functions)
+both call:
+- `renderOpsAggregate()` — OPS health totals
+- `renderSystemServicesTable()` — Prometheus target status
+- `renderPrometheus()` — Metrics-tab-shared Prometheus health card
+- `renderFarmSummary()` — farm/population totals
+- `renderContainerGrid()` — per-container resource tiles
+- `renderFleetRollup()` — fleet-level rollup strip
 
 ---
 
-## 3. Recommended design changes
+## 1. Current implementation (verified against the rebuilt tab)
 
-1. **Fix or remove the "Service Health Map" panel's mismatch** (§1.3). Two honest options, no in-between:
-   - **(a) Rewrite the section copy** to describe what the table actually shows (addon-internal read health, not named infrastructure services) — the cheapest fix, ships today, zero new Core work.
-   - **(b) Build the real thing the copy promises** — requires exposing `runningContainerNames()` (or an expanded version covering all 7 named services, verified against the actual `docker-compose.yml` service list) via a new bridge action, then wiring `renderNocService()` to render real per-service up/down rows. Real, buildable, but new scope — not a quick fix.
-2. Do not silently leave the mismatch as-is — pick (a) or (b) explicitly; see `docs/prompts/NOC-OVERVIEW.md` for a scoped prompt covering both options with the maintainer choosing which to execute.
+Six panels, top to bottom:
+
+### 1.1 "OPS health totals" summary grid
+
+Four cards: Players / Online / Offline / Farm Sites. Populated by
+`renderOpsAggregate()` from `normalizeOpsHealth(opsHealth)`'s `.totals`
+object (`ops.health.summary.v2` + `.players` + `.farms`, real and live).
+Unchanged by the 2026-08-17 rebuild.
+
+**Known, deliberately-out-of-scope overlap**: the Players tab's own
+table duplicates these same 4 numbers — documented in
+`docs/tabs/PLAYERS.md`, not re-litigated here.
+
+### 1.2 "Data Freshness & Reliability" panel
+
+Four cards: Source Health / Freshness / Aggregate Impact / Operator
+Status — addon-internal bookkeeping about the *addon's own read
+health* (staleness threshold, player-count delta since last refresh),
+not about the game server itself. Unchanged by the rebuild.
+
+### 1.3 "System Services" panel
+
+Prometheus target up/down status (`renderSystemServicesTable()`),
+sourced from `ops.health.prometheus`'s real `/api/v1/targets` scrape.
+Unchanged by the rebuild, other than no longer being called from the
+now-removed `renderNocService()` wrapper (see §1.4 below) — it's
+invoked directly from both render entry points now.
+
+### 1.4 "Bridge & Data Sources" panel — REMOVED 2026-08-17 (issue #77, fixed)
+
+**This panel no longer exists.** It previously showed 5 addon-internal
+bookkeeping rows ("OPS Health Bridge", "Player Aggregate", "Farm
+Aggregate", "Data Freshness", "Provider Mode") under a heading whose
+own section copy promised named infrastructure services ("Postgres,
+RabbitMQ, Director, Gateway, Survival_1, Overmap, TextRouter") — issue
+#77's real, previously-open defect.
+
+**Resolution: Option B** (per #77's own two documented options) — the
+real thing the copy promised was built, not just relabeled. The
+Containers panel (§1.5) now shows real, live, per-container status for
+every container this deployment manages, including `dune-postgres` and
+`dune-rmq-admin`/`dune-rmq-game` — this supersedes the removed panel's
+unfulfillable promise with actual data. The Fleet Overview panel
+(§1.6) gives the "one number, rolled up" view the removed panel never
+actually provided either.
+
+### 1.5 "Containers" panel (added #133, PR 1 of 3)
+
+One tile per container `ops.health.containers` returns, scoped to this
+project's own containers only (`com.docker.compose.project` label
+match — `dune-awakening-selfhost-docker#240`/`#246`). Every tile shows
+CPU%, memory used/limit (with a `.meter` bar), network I/O, disk I/O,
+and a health-state dot derived from the container's real status string.
+
+**Family-specific extra metrics** (added #133, PR 2 of 3):
+`dune-postgres` tiles additionally show connections (active/max, warn
+>80%/crit >95%, matching `DunePostgresHighConnections`/
+`DunePostgresCriticalConnections`), cache hit ratio (flagged below 95%,
+matching `DunePostgresLowCacheHitRatio`), and deadlocks in the last 5
+minutes (flagged on any increase, matching `DunePostgresDeadlocks`).
+`dune-rmq-admin`/`dune-rmq-game` tiles additionally show broker
+up/down state (per-instance, not just an aggregate), queue depth
+(ready + unacked, flagged above 1000, matching
+`DuneRabbitMQQueueBacklog`/`UnackedBacklog`), memory % of limit (warn
+>80%, matching `DuneRabbitMQHighMemory`), and file-descriptor % of
+limit (warn >80%, matching `DuneRabbitMQHighFileDescriptors`).
+
+Container → family detection is by container **name** pattern
+(`dune-postgres`, `dune-rmq-(admin|game)`), not image tag — see the L1
+design doc for why. Every other container (`dune-server-*`, the
+console, orchestrator, and metrics-stack containers) gets the generic
+tile only — no game-process metrics exist yet for them
+(2026-08-07 register's N-1, still an open, unrelated gap).
+
+**Threshold provenance**: every warn/crit threshold above is copied
+verbatim from `runtime/metrics/rules/postgres.yml`/`rabbitmq.yml`'s own
+Alertmanager rule expressions (pinned by a regression test in
+`dune-awakening-selfhost-docker`'s `postgresHealth.test.js`/
+`rabbitmqHealth.test.js`) — a tile's color never disagrees with what
+would actually page an operator.
+
+### 1.6 "Fleet Overview" panel (added #133, PR 3 of 3)
+
+Five cards: Containers Up (X / total), Fleet CPU (sum across every
+container), Fleet Memory (sum, human-scaled via `formatBytesHuman()`),
+Host CPU, Host Memory (both from `ops.health.prometheus`, also
+human-scaled — this fixes a real, previously-reported bloat finding:
+the pre-rebuild tab showed raw unformatted MB integers, e.g. "16384 MB"
+instead of "16.4 GB"). Fleet CPU/memory are derived from the exact same
+per-container data the Containers panel (§1.5) renders below it — not
+a separately computed, potentially-drifting number.
+
+### 1.7 "Farm & Population Summary" panel
+
+Farm totals, ready/alive counts, connected players, S2S connection
+counts — real, sourced from `addonOpsHealthFarms()`'s live query. Its
+own render function was split out of the old, now-removed
+`renderNocResources()` into a dedicated `renderFarmSummary()` during
+PR 1 of the rebuild (the CPU/mem/disk/uptime half of that old function
+was the dead panel replaced by §1.5/§1.6). Unchanged behavior,
+different internal function name only.
+
+---
+
+## 2. Auto-refresh (added #133, PR 3 of 3)
+
+The Containers panel (§1.5) and Fleet Overview panel (§1.6), plus the
+System Services panel (§1.3), auto-refresh every 15 seconds
+(`AUTO_REFRESH_INTERVAL_MS`) **while the Overview tab is the active
+tab** — via `_autoRefreshOverview()`, which calls exactly four provider
+methods (`getContainerHealth`, `getPostgresHealth`, `getRabbitmqHealth`,
+`getPrometheusHealth`) and nothing else.
+
+**Every other panel/tab remains manual-refresh-only**, per the
+2026-08-16 register's M-3 finding: several existing queries
+(`addonOpsActivitySummary`, `addonOpsInventorySummary`'s `LATERAL`
+join) are full-table-scan/multi-join against `dune.*` game tables and
+were only ever safe because nothing calls them on a timer. The
+auto-refresh timer's four sources are Docker (`docker ps`/`docker
+stats`, async+scoped since `#240`/`#246`) and Prometheus PromQL reads
+against already-aggregated time-series data — never the live game
+database — so this timer does not reintroduce that risk.
+
+The timer only starts inside a real Console iframe (`window.parent !==
+window`) — never in direct-browser preview mode, and never in this
+repo's own jsdom-based test harness (which has no parent window
+either, for the same reason). `window.DuneOpsAutoRefresh` exposes
+`stop()`/`isRunning()`/`triggerNow()` for tests and for any future
+manual-control need.
+
+---
+
+## 3. Data flow (current, verified)
+
+```
+refreshAll() / _refreshTab("overview")
+  → provider.getOpsHealth() → renderOpsAggregate() → §1.1, §1.7 (partial)
+  → provider.getPrometheusHealth() → renderSystemServicesTable() → §1.3
+                                    → renderPrometheus() → shared Metrics-tab-style card
+  → provider.getContainerHealth() ┐
+  → provider.getPostgresHealth()  ├→ renderContainerGrid() → §1.5
+  → provider.getRabbitmqHealth()  ┘
+  → renderFleetRollup(containerResult, prometheusResult) → §1.6
+  → renderFarmSummary(opsHealthSnapshot) → §1.7
+```
+
+**Server-side, verified**: `ops.health.*` actions are handled by
+`server.js`'s addon-bridge dispatch (`assertInstalledAddonPermission
+(config, id, "ops:read")`) — the path used by installed third-party
+addons calling `POST /api/addons/bridge` from inside the Console
+iframe. `ops.health.postgres`/`ops.health.rabbitmq` (new in this
+rebuild) follow the identical pattern as the pre-existing
+`ops.health.prometheus`/`ops.health.containers`.
+
+---
+
+## 4. Historical record (pre-rebuild panels, for context only)
+
+The pre-2026-08-17 version of this tab had a "Service Health Map"
+panel with a broken promise (issue #77) and a "Server Resources" panel
+permanently hardcoded to `"—"` — both fully described in this
+document's git history prior to the 2026-08-17 rewrite commit, if that
+history is ever needed. Do not resurrect that text here; it describes
+a tab that no longer exists.

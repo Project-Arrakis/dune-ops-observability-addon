@@ -109,10 +109,11 @@ function _renderTabData(tabName, results) {
       if (opsHealth) {
         var snap = normalizeOpsHealth(opsHealth);
         renderOpsAggregate(snap, new Date());
-        renderNocService(_activeProvider, snap, new Date(), prom);
       }
+      renderSystemServicesTable(prom);
       if (prom) renderPrometheus(prom);
       renderContainerGrid(containerHealth, postgresHealth, rabbitmqHealth);
+      renderFleetRollup(containerHealth, prom);
       break;
     case "players":
       var oh = get("opsHealth");
@@ -298,10 +299,14 @@ const mtrAvailabilityEl = document.querySelector("#mtr-availability-note");
 
 const nocSystemServiceBodyEl = document.querySelector("#noc-system-service-body");
 const nocMetricsCtaEl = document.querySelector("#noc-metrics-cta");
-const nocServiceBodyEl = document.querySelector("#noc-service-body");
 const containerGridEl = document.querySelector("#container-grid");
 const containerGridLoadingNoteEl = document.querySelector("#container-grid-loading-note");
 const containerGridAvailabilityNoteEl = document.querySelector("#container-grid-availability-note");
+const fleetContainersUpEl = document.querySelector("#fleet-containers-up");
+const fleetCpuEl = document.querySelector("#fleet-cpu");
+const fleetMemEl = document.querySelector("#fleet-mem");
+const fleetHostCpuEl = document.querySelector("#fleet-host-cpu");
+const fleetHostMemEl = document.querySelector("#fleet-host-mem");
 const nocFarmsTotalEl = document.querySelector("#noc-farms-total");
 const nocFarmsReadyEl = document.querySelector("#noc-farms-ready");
 const nocFarmsPlayersEl = document.querySelector("#noc-farms-players");
@@ -721,14 +726,12 @@ async function refreshOpsHealth() {
     });
 
     previousTotals = summary.totals;
-    renderNocService(provider, snapshot, refreshedAt, null);
     renderFarmSummary(snapshot);
   } catch (error) {
     const refreshedAt = new Date();
     const unavailableSnapshot = normalizeOpsHealth(null);
     renderOpsAggregate(unavailableSnapshot, refreshedAt);
     const opsHealth = updateOpsHealth(provider, null, refreshedAt, error);
-    renderNocService(provider, unavailableSnapshot, refreshedAt, null);
     renderFarmSummary(unavailableSnapshot);
     writeStatus("Unable to read Release 0.3 OPS health data from the configured provider.", "status-warn");
     writeOutput({
@@ -1266,20 +1269,6 @@ function renderSystemServicesTable(prometheusResult) {
   }
 }
 
-function renderNocService(provider, snapshot, refreshedAt, prometheusResult) {
-  clearTbody(nocServiceBodyEl);
-  renderSystemServicesTable(prometheusResult);
-
-  if (!nocServiceBodyEl) return;
-  const isBridge = provider && provider.name === "bridge";
-  const totals = (snapshot && snapshot.totals) || {};
-  appendRow(nocServiceBodyEl, ["OPS Health Bridge", isBridge ? "Connected" : "Preview", isBridge ? provider.label : "sample", "—"]);
-  appendRow(nocServiceBodyEl, ["Player Aggregate", totals.total > 0 ? "Populated" : "No Data", String(totals.total || "0"), String(totals.online || "0")]);
-  appendRow(nocServiceBodyEl, ["Farm Aggregate", totals.farms > 0 ? "Populated" : "No Data", `${totals.readyFarms || 0} ready`, `${totals.aliveFarms || 0} alive`]);
-  appendRow(nocServiceBodyEl, ["Data Freshness", lastSuccessfulReadAt ? "Current" : "Stale", lastSuccessfulReadAt ? formatRefreshTime(refreshedAt || lastSuccessfulReadAt) : "No read", lastSuccessfulReadAt && refreshedAt ? `${Math.round((new Date() - refreshedAt) / 1000)}s ago` : "—"]);
-  appendRow(nocServiceBodyEl, ["Provider Mode", isBridge ? "Live Bridge" : "Sample Data", provider ? provider.label : "unknown", "—"]);
-}
-
 // Farm & Population Summary panel -- unrelated to the CPU/mem/disk/uptime
 // numbers previously shown in the now-removed "Server Resources" panel
 // (see renderContainerGrid() below, its real replacement). Kept as its
@@ -1362,6 +1351,73 @@ function renderContainerGrid(result, postgresResult, rabbitmqResult) {
     const familyData = family === "postgres" ? postgresData : family === "rabbitmq" ? rabbitmqData : null;
     containerGridEl.appendChild(renderContainerTile(container, family, familyData));
   }
+}
+
+// #133 PR 3: fleet-level rollup strip. Sums CPU/mem across every
+// container ops.health.containers returned (independent of family --
+// this is a total, not a per-family breakdown) alongside the existing
+// host-level CPU/mem from ops.health.prometheus. Deliberately reuses
+// the same parseCpuPercent()/parseByteSize() helpers the per-container
+// tiles already use, so the rollup's total is arithmetically
+// consistent with what's shown per-tile below it -- not a separately
+// computed/potentially-drifting number.
+function renderFleetRollup(containerResult, prometheusResult) {
+  if (!containerResult || containerResult.status !== "live") {
+    setText(fleetContainersUpEl, "—");
+    setText(fleetCpuEl, "—");
+    setText(fleetMemEl, "—");
+  } else {
+    const containers = (containerResult.data && containerResult.data.containers) || [];
+    const upCount = containers.filter(function (c) { return containerHealthClass(c) === "ok"; }).length;
+    setText(fleetContainersUpEl, `${upCount} / ${containers.length}`);
+
+    let cpuSum = 0;
+    let cpuKnown = false;
+    let memSumBytes = 0;
+    let memKnown = false;
+    for (const c of containers) {
+      const cpu = parseCpuPercent(c.cpu);
+      if (cpu !== null) { cpuSum += cpu; cpuKnown = true; }
+      const mem = parseByteSize(c.mem);
+      if (mem !== null) { memSumBytes += mem; memKnown = true; }
+    }
+    setText(fleetCpuEl, cpuKnown ? `${Math.round(cpuSum * 10) / 10}%` : "—");
+    setText(fleetMemEl, memKnown ? formatBytesHuman(memSumBytes) : "—");
+  }
+
+  if (!prometheusResult || prometheusResult.status === "unavailable" ||
+      (prometheusResult.data && prometheusResult.data.status === "planned")) {
+    setText(fleetHostCpuEl, "—");
+    setText(fleetHostMemEl, "—");
+    return;
+  }
+  const summary = (prometheusResult.data && prometheusResult.data.summary) || {};
+  setText(fleetHostCpuEl, summary.avgCpuPercent !== null && summary.avgCpuPercent !== undefined ? `${summary.avgCpuPercent}%` : "—");
+  // formatBytesHuman() fixes a real, previously-reported bloat finding:
+  // the old "Server Resources" panel showed avgMemoryMb as a raw
+  // integer with no unit scaling (e.g. "16384 MB" instead of
+  // "16.4 GB") -- see the 2026-08 addon-UX audit.
+  setText(fleetHostMemEl, summary.avgMemoryMb !== null && summary.avgMemoryMb !== undefined ? formatBytesHuman(summary.avgMemoryMb * 1024 * 1024) : "—");
+}
+
+// Scales a raw byte count to the largest unit that keeps at least one
+// whole digit before the decimal point (B/KB/MB/GB/TB), matching the
+// same base-1000 convention docker stats' own human-readable output
+// already uses elsewhere in this file (parseByteSize() parses both
+// base-1000 and base-1024 suffixes on the way in; this always renders
+// base-1000 on the way out, for one consistent display convention
+// regardless of which suffix Core originally reported).
+function formatBytesHuman(bytes) {
+  if (bytes === null || bytes === undefined || !Number.isFinite(bytes)) return "—";
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  let value = bytes;
+  let unitIndex = 0;
+  while (value >= 1000 && unitIndex < units.length - 1) {
+    value /= 1000;
+    unitIndex += 1;
+  }
+  const decimals = unitIndex === 0 ? 0 : 1;
+  return `${value.toFixed(decimals)} ${units[unitIndex]}`;
 }
 
 function containerHealthClass(container) {
@@ -1780,10 +1836,11 @@ async function refreshAll() {
     renderInventory(inventory);
     renderLocation(location);
     renderSoc(soc);
+    renderSystemServicesTable(prometheus);
     renderPrometheus(prometheus);
-    renderNocService(_activeProvider, snapshot, refreshedAt, prometheus);
     renderFarmSummary(snapshot);
     renderContainerGrid(containerHealth, postgresHealth, rabbitmqHealth);
+    renderFleetRollup(containerHealth, prometheus);
 
     const opsHealthResult = updateOpsHealth(_activeProvider, snapshot.available ? summary.totals : null, refreshedAt, snapshot.available ? null : new Error("ops.health.* unavailable"));
 
@@ -1840,3 +1897,82 @@ writeStatus(
 
 if (buttonEl) buttonEl.addEventListener("click", refreshAll);
 refreshAll();
+
+// ── Scoped auto-refresh (#133 PR 3) ──
+//
+// Explicitly, ONLY the container/postgres/rabbitmq/prometheus sources
+// auto-refresh, and ONLY while the Overview tab is the active/visible
+// tab. Every other tab's providers (activity, combat, resources,
+// economy, inventory, location, soc) remain manual-refresh-only,
+// exactly as they were before this change and exactly as M-3's design
+// constraint requires (see docs/design/
+// noc-overview-rebuild-l1-design-2026-08-17.md's "Auto-Refresh Scope"
+// section) -- several of those existing queries are full-table-scan/
+// multi-join against dune.* game tables, and were only ever safe
+// because nothing calls them on a timer. This timer's four sources are
+// Docker (docker ps/docker stats, async+scoped since #240/#246) and
+// Prometheus PromQL reads against already-aggregated time-series data
+// -- never the live game database -- so adding a timer to THESE four
+// specifically does not reintroduce that risk.
+//
+// Bypasses _tabCache's 60s TTL entirely (calls the provider methods
+// directly, not via _refreshTab()) -- a fixed 15s interval is more
+// predictable to reason about here than layering a second cache TTL
+// on top of the existing one.
+var AUTO_REFRESH_INTERVAL_MS = 15000;
+var _autoRefreshTimer = null;
+
+async function _autoRefreshOverview() {
+  if (!_activeProvider) return;
+  var overviewTab = document.querySelector('.tab-content[data-tab="overview"]');
+  if (!overviewTab || !overviewTab.classList.contains("active")) return;
+
+  var methods = ["getContainerHealth", "getPostgresHealth", "getRabbitmqHealth", "getPrometheusHealth"];
+  var results = await Promise.allSettled(methods.map(function (method) {
+    return _activeProvider[method]
+      ? _activeProvider[method]()
+      : Promise.resolve(window.DuneOpsProviders.unavailableResult("request_failed", null));
+  }));
+  var sourceResults = results.map(settledToSourceResult);
+  var containerHealth = sourceResults[0];
+  var postgresHealth = sourceResults[1];
+  var rabbitmqHealth = sourceResults[2];
+  var prometheus = sourceResults[3];
+
+  // Keep _tabCache in sync so a manual tab-switch away and back doesn't
+  // immediately re-fetch data this timer just refreshed.
+  var now = Date.now();
+  _tabCache.set("containerHealth", { result: containerHealth, at: now });
+  _tabCache.set("postgresHealth", { result: postgresHealth, at: now });
+  _tabCache.set("rabbitmqHealth", { result: rabbitmqHealth, at: now });
+  _tabCache.set("prometheus", { result: prometheus, at: now });
+
+  renderSystemServicesTable(prometheus);
+  renderPrometheus(prometheus);
+  renderContainerGrid(containerHealth, postgresHealth, rabbitmqHealth);
+  renderFleetRollup(containerHealth, prometheus);
+}
+
+// Only runs inside the real Console iframe (window.parent !== window) --
+// never in direct-browser preview mode, and never in this repo's own
+// jsdom-based test harness (test/addon-rendering.test.js's loadAddon()
+// creates a standalone jsdom window with no parent, so window.parent
+// === window there too, exactly like preview mode -- a real setInterval
+// running in that harness would leak a live timer across tests, since
+// nothing in that harness tears down a loaded window between tests).
+// window.DuneOpsAutoRefresh.stop() is exposed as an explicit escape
+// hatch for any future test that DOES need to exercise this path.
+if (window.parent !== window) {
+  _autoRefreshTimer = setInterval(_autoRefreshOverview, AUTO_REFRESH_INTERVAL_MS);
+}
+
+window.DuneOpsAutoRefresh = {
+  stop: function () {
+    if (_autoRefreshTimer) {
+      clearInterval(_autoRefreshTimer);
+      _autoRefreshTimer = null;
+    }
+  },
+  isRunning: function () { return _autoRefreshTimer !== null; },
+  triggerNow: _autoRefreshOverview
+};
