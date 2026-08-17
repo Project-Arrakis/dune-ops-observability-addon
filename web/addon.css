@@ -380,16 +380,25 @@ button:focus-visible {
   gap: 12px;
 }
 
-/* ── Card differentiation ──
-   .metric-card and .kpi-card were previously visually identical boxes
-   (same border/radius/padding/background), distinguishable only by the
-   text content inside them. Each now has a shared elevated-surface base
-   plus its own accent treatment: metric cards get a bottom accent bar
-   (they are this addon's primary, most-referenced numbers); KPI cards
-   keep a plain elevated surface (they are secondary/derived figures). */
-/* ── Metric Cards — game's stat panels ── */
-.metric-card,
-.kpi-card {
+/* ── Card differentiation (#146: consolidated into one class + modifiers) ──
+   .metric-card/.kpi-card/.health-card were three separate class names for
+   what is structurally one component (a bordered, elevated stat box) with
+   three visual variants -- consolidated here into .stat-card + BEM-style
+   modifiers. This is a class-naming/selector consolidation only, verified
+   to produce IDENTICAL rendering to the pre-#146 markup, including one
+   easy-to-miss detail: the old markup used a COMBO class
+   (class="metric-card health-card"), meaning health-card elements
+   previously matched BOTH .metric-card's accent-bar ::after rule AND
+   .metric-card strong's 2xl font-size (overridden afterward by the
+   later, same-specificity .health-card strong rule to font-size-xl) --
+   i.e. health-card elements DID get the bottom accent bar, just with a
+   smaller number. --health below is therefore a modifier ON TOP of the
+   base treatment (accent bar included), not a replacement for it -- the
+   metric/kpi/health split is purely about strong font-size and the
+   optional secondary <p> note, not about which get the accent bar
+   (every stat-card gets it, confirmed against the original combo-class
+   markup+CSS before making this change, not assumed). */
+.stat-card {
   position: relative;
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
@@ -402,15 +411,16 @@ button:focus-visible {
   overflow: hidden;
 }
 
-.metric-card:hover,
-.kpi-card:hover {
+.stat-card:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
   border-color: var(--border-accent);
 }
 
-/* Bottom accent rule — the gold strip seen on in-game stat panels */
-.metric-card::after {
+/* Bottom accent rule — the gold strip seen on in-game stat panels.
+   Every .stat-card variant gets this (see comment above -- health-card's
+   pre-#146 combo class meant it always did too). */
+.stat-card::after {
   content: "";
   position: absolute;
   left: 4px; right: 4px; bottom: 0;
@@ -419,10 +429,9 @@ button:focus-visible {
   opacity: 0.5;
   transition: opacity var(--transition-fast), height var(--transition-fast);
 }
-.metric-card:hover::after { opacity: 0.85; height: 3px; }
+.stat-card:hover::after { opacity: 0.85; height: 3px; }
 
-.metric-card strong,
-.kpi-card strong {
+.stat-card strong {
   display: block;
   margin-top: 6px;
   font-size: var(--font-size-2xl);
@@ -437,10 +446,10 @@ button:focus-visible {
   max-width: 100%;
 }
 
-.health-card strong { font-size: var(--font-size-xl); }
+.stat-card--health strong { font-size: var(--font-size-xl); }
 
-.health-card p,
-.kpi-card p {
+.stat-card--health p,
+.stat-card--kpi p {
   color: var(--text-secondary);
   margin-bottom: 0;
   font-size: var(--font-size-base);
@@ -729,10 +738,10 @@ pre { overflow: auto; white-space: pre-wrap; font-size: var(--font-size-xs); }
 }
 
 /* ── Spice Data Elements ── */
-[data-tagged-spice] .metric-card strong {
+[data-tagged-spice] .stat-card strong {
   color: var(--spice-text);
 }
-[data-tagged-spice] .metric-card .metric-label {
+[data-tagged-spice] .stat-card .metric-label {
   color: var(--spice-text);
   opacity: 0.8;
 }
@@ -747,9 +756,9 @@ pre { overflow: auto; white-space: pre-wrap; font-size: var(--font-size-xs); }
 }
 
 /* ── Faction-Colored Tab Content ── */
-[data-tagged-faction="atreides"] .metric-card strong { color: #4ade80; }
-[data-tagged-faction="harkonnen"] .metric-card strong { color: #f87171; }
-[data-tagged-faction="fremen"] .metric-card strong { color: #60a5fa; }
+[data-tagged-faction="atreides"] .stat-card strong { color: #4ade80; }
+[data-tagged-faction="harkonnen"] .stat-card strong { color: #f87171; }
+[data-tagged-faction="fremen"] .stat-card strong { color: #60a5fa; }
 
 /* ── Comprehensive Faction Coloring (matches WebUI) ── */
 [data-tagged-faction="atreides"],
@@ -957,11 +966,11 @@ pre { overflow: auto; white-space: pre-wrap; font-size: var(--font-size-xs); }
   margin-bottom: 10px;
 }
 
-.res-instance-metrics .metric-card {
+.res-instance-metrics .stat-card {
   padding: 10px 12px;
 }
 
-.res-instance-metrics .metric-card strong {
+.res-instance-metrics .stat-card strong {
   font-size: 1.3rem;
   margin-top: 4px;
   overflow: hidden;

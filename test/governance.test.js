@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, writeFileSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -323,4 +323,44 @@ test("SRI checker's REAL invocation passes against this repo's actual current we
     0,
     `expected the real repo's web/index.html SRI hashes to already match their scripts' real content; got:\n${result.out}`
   );
+});
+
+// #146: .metric-card/.kpi-card/.health-card were consolidated into one
+// .stat-card class with --kpi/--health modifiers. This test guards
+// against silent re-introduction of the old, pre-consolidation class
+// names as REAL class usage anywhere in the addon's current source --
+// per issue #146's own verification standard ("recommend adding a
+// governance-style test asserting no stray class name remains, to
+// prevent silent re-introduction"). Deliberately does NOT flag mentions
+// inside comments (e.g. this consolidation's own explanatory comment in
+// web/addon.css, which references the old names for historical
+// context) -- only patterns that would actually apply the old CSS
+// rules or set the old class on a real DOM element.
+test("no stray .metric-card/.kpi-card/.health-card class USAGE remains anywhere in web/index.html, web/addon.js, or web/addon.css (issue #146)", () => {
+  const staleNames = ["metric-card", "kpi-card", "health-card"];
+
+  // web/index.html: a real class="..." attribute containing the old name
+  // as a whole token (not a substring of e.g. container-tile-metric).
+  const html = readFileSync(join(ROOT, "web/index.html"), "utf8");
+  for (const name of staleNames) {
+    const attrPattern = new RegExp(`class="[^"]*\\b${name}\\b[^"]*"`);
+    assert.equal(attrPattern.test(html), false, `web/index.html still has a class="..." attribute referencing the old "${name}" class -- use stat-card (+ stat-card--kpi / stat-card--health) instead`);
+  }
+
+  // web/addon.js: a real className/classList assignment using the old name.
+  const js = readFileSync(join(ROOT, "web/addon.js"), "utf8");
+  for (const name of staleNames) {
+    const assignPattern = new RegExp(`(className\\s*=\\s*["'\`][^"'\`]*\\b${name}\\b|classList\\.(add|toggle|contains|remove)\\(["'\`]${name}["'\`])`);
+    assert.equal(assignPattern.test(js), false, `web/addon.js still assigns/checks the old "${name}" class via className/classList -- use stat-card (+ stat-card--kpi / stat-card--health) instead`);
+  }
+
+  // web/addon.css: a real CSS selector defining/targeting the old class
+  // (a "." immediately followed by the old name, as a selector token --
+  // not inside a comment. Strip /* ... */ comment blocks first so the
+  // consolidation's own explanatory prose isn't flagged.)
+  const cssNoComments = readFileSync(join(ROOT, "web/addon.css"), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+  for (const name of staleNames) {
+    const selectorPattern = new RegExp(`\\.${name}\\b`);
+    assert.equal(selectorPattern.test(cssNoComments), false, `web/addon.css still has a real (non-comment) CSS selector for the old ".${name}" class -- use .stat-card (+ .stat-card--kpi / .stat-card--health) instead`);
+  }
 });
