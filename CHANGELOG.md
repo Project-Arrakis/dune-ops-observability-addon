@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **"Connected Players" and "S2S Connections" metrics on NOC Overview
+  are now wired to real, live data (#139).** `normalizeOpsHealth()`
+  never actually extracted Core's real `connectedPlayers`/
+  `incomingS2SConnections`/`outgoingS2SConnections` fields (a field-name
+  casing mismatch — the addon read lowercase `incomingS2s`, Core returns
+  capital-S2S `incomingS2SConnections`). "S2S Connections" showed a
+  permanent dash on every install; "Connected Players" silently
+  displayed `totals.online` (a real, but different and unrelated,
+  addon-wide online-player count) instead of the real per-farm
+  connected-player count its own label promises. Both are now correctly
+  wired to Core's real `addonOpsHealthFarms()` fields, with an honest
+  dash shown only when a payload genuinely omits them (e.g. an older
+  Core version) — never a silent substitution or a fabricated 0.
+  `docs/tabs/NOC-OVERVIEW.md`'s prior false "already real, sourced from
+  a live query" claim corrected in the same change.
+
 ### Added
 - **Test coverage for `renderLocation`, `renderSoc`,
   `renderSystemServicesTable`, `renderFarmSummary`, and `renderKpis`

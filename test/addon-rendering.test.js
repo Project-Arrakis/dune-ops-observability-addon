@@ -1279,7 +1279,14 @@ test("renderSystemServicesTable renders a real row per known service plus any ad
   assert.ok(unknownRow, "an additional service not in the known-services label map must still get its own row, keyed by its raw job name");
 });
 
-test("renderFarmSummary shows real farm totals, ready/alive counts, and connected-player count when live", async () => {
+test("renderFarmSummary shows real farm/ready/alive counts, and an honest dash (never a fallback to a different number) for Connected Players when connectedPlayers is absent from the payload", async () => {
+  // #139 fix: previously this silently fell back to totals.online (a
+  // real, but DIFFERENT, unrelated number -- total online players
+  // addon-wide, not the per-farm connected-player count the "Connected
+  // Players" label actually promises) whenever connectedPlayers was
+  // absent. Now shows an honest "--", matching every other field in
+  // this addon that distinguishes "no real data for this field" from
+  // "substitute a different field that happens to also be a number."
   const { window } = loadAddon();
   installMockProvider(window, {
     getOpsHealth: async () => live({ summary: { players: { total: 5, onlineStatus: { Online: 3, Offline: 2 } }, farms: { total: 4, ready: 3, alive: 4 } } })
@@ -1289,7 +1296,53 @@ test("renderFarmSummary shows real farm totals, ready/alive counts, and connecte
 
   assert.equal(text(window, "#noc-farms-total"), "4");
   assert.equal(text(window, "#noc-farms-ready"), "3 / 4");
-  assert.equal(text(window, "#noc-farms-players"), "3", "falls back to totals.online when totals.connectedPlayers is not present in this aggregate shape");
+  assert.equal(text(window, "#noc-farms-players"), "—", "must show a dash, not silently substitute totals.online, when connectedPlayers is genuinely absent from this payload");
+});
+
+// #139: real fix -- incomingS2SConnections/outgoingS2SConnections/
+// connectedPlayers are real, live fields from Core's own
+// addonOpsHealthFarms() (verified directly against
+// dune-awakening-selfhost-docker's duneDb.js, which computes these via
+// a real SQL sum over dune.farm_state). This test uses the correct
+// capital-S2S field-name casing Core actually returns -- the bug this
+// issue fixed was addon.js reading the wrong casing entirely, not a
+// missing backend feature.
+test("renderFarmSummary renders real S2S connection counts and connected-player count when Core's payload includes them (issue #139 fix)", async () => {
+  const { window } = loadAddon();
+  installMockProvider(window, {
+    getOpsHealth: async () => live({
+      summary: {
+        players: { total: 5, onlineStatus: { Online: 3, Offline: 2 } },
+        farms: { total: 4, ready: 3, alive: 4, connectedPlayers: 9, incomingS2SConnections: 12, outgoingS2SConnections: 7 }
+      }
+    })
+  });
+  runAddon(window);
+  await flushAsync();
+
+  assert.equal(text(window, "#noc-farms-players"), "9", "must show the real, live per-farm connected-player count, not totals.online (3)");
+  assert.equal(text(window, "#noc-farms-s2s"), "12 in / 7 out", "must show the real, live S2S connection counts, not a permanent dash");
+});
+
+test("renderFarmSummary shows a genuine 0 (not a dash) for S2S connections when Core reports zero active connections", async () => {
+  // A real 0 (server genuinely has zero S2S connections right now) must
+  // render as 0, not collapse to the same dash used for "field absent
+  // from this payload entirely" -- the same honest-zero-vs-absent
+  // distinction already enforced elsewhere in this addon.
+  const { window } = loadAddon();
+  installMockProvider(window, {
+    getOpsHealth: async () => live({
+      summary: {
+        players: { total: 1 },
+        farms: { total: 1, ready: 1, alive: 1, connectedPlayers: 0, incomingS2SConnections: 0, outgoingS2SConnections: 0 }
+      }
+    })
+  });
+  runAddon(window);
+  await flushAsync();
+
+  assert.equal(text(window, "#noc-farms-players"), "0");
+  assert.equal(text(window, "#noc-farms-s2s"), "0 in / 0 out");
 });
 
 // Regression pin for issue #139: incomingS2s/outgoingS2s are never
@@ -1300,7 +1353,12 @@ test("renderFarmSummary shows real farm totals, ready/alive counts, and connecte
 // does not exist yet. If/when #139 is fixed, this test's expected value
 // must change to a real number, not stay "—" -- do not "fix" this test
 // by leaving it expecting a dash forever.
-test("renderFarmSummary's S2S Connections field is currently always '—' (known bug, tracked separately as issue #139)", async () => {
+test("renderFarmSummary's S2S Connections field shows an honest dash when Core's payload genuinely omits the S2S fields entirely (e.g. an older Core version)", async () => {
+  // Fixed by issue #139 (see the dedicated live-value test above): this
+  // used to always show "--" on EVERY deployment, live or not, due to a
+  // field-name casing bug in normalizeOpsHealth(). Now it correctly
+  // shows "--" only in the genuinely-absent case (this test) and real
+  // numbers when Core's payload actually includes them (the test above).
   const { window } = loadAddon();
   installMockProvider(window, {
     getOpsHealth: async () => live({ summary: { players: { total: 1 }, farms: { total: 1, ready: 1, alive: 1 } } })
@@ -1308,7 +1366,7 @@ test("renderFarmSummary's S2S Connections field is currently always '—' (known
   runAddon(window);
   await flushAsync();
 
-  assert.equal(text(window, "#noc-farms-s2s"), "—", "documents the current, known-broken behavior -- see issue #139 for the real fix");
+  assert.equal(text(window, "#noc-farms-s2s"), "—", "must show a dash when Core's payload genuinely has no S2S fields, distinct from the real-value case above");
 });
 
 test("renderFarmSummary shows honest zero/dash defaults, not a throw, when the snapshot has no totals at all", async () => {

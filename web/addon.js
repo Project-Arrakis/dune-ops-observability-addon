@@ -529,6 +529,22 @@ function normalizeOpsHealth(result) {
   const farmTotal = valueFromKeys(farms, ["total", "count", "farmCount", "farm_count"], 0);
   const readyFarms = valueFromKeys(farms, ["ready", "readyCount", "ready_count"], 0);
   const aliveFarms = valueFromKeys(farms, ["alive", "aliveCount", "alive_count"], 0);
+  // #139: Core's real, live addonOpsHealthFarms() (duneDb.js) returns
+  // connectedPlayers/incomingS2SConnections/outgoingS2SConnections
+  // (capital S2S) -- these were never extracted here at all, so
+  // renderFarmSummary()'s own field-name checks (lowercase "incomingS2s",
+  // and a totals.connectedPlayers check that always missed since
+  // `totals` never had that key either) silently fell through to their
+  // fallback branches on every real deployment: S2S showed a permanent
+  // dash, and "Connected Players" silently displayed totals.online (a
+  // different, real number, but not what that card's label promises)
+  // instead of the real per-farm connected-player count. Fixed by
+  // actually reading these three fields, matching valueFromKeys()'s
+  // existing multi-casing-variant convention used for every other field
+  // above.
+  const connectedPlayers = valueFromKeys(farms, ["connectedPlayers", "connected_players"], null);
+  const incomingS2S = valueFromKeys(farms, ["incomingS2SConnections", "incoming_s2s_connections"], null);
+  const outgoingS2S = valueFromKeys(farms, ["outgoingS2SConnections", "outgoing_s2s_connections"], null);
   const factions = players.factions || players.byFaction || players.factionCounts || {};
   const guilds = players.guilds || players.byGuild || players.guildCounts || {};
   const topFaction = topCountLabel(factions);
@@ -548,7 +564,10 @@ function normalizeOpsHealth(result) {
       offline,
       farms: farmTotal,
       readyFarms,
-      aliveFarms
+      aliveFarms,
+      connectedPlayers,
+      incomingS2SConnections: incomingS2S,
+      outgoingS2SConnections: outgoingS2S
     },
     kpis: {
       activeRate: total > 0 ? Math.round((online / total) * 100) : null,
@@ -1299,12 +1318,22 @@ function renderSystemServicesTable(prometheusResult) {
 // (see renderContainerGrid() below, its real replacement). Kept as its
 // own function (was previously fused into renderNocResources(), which
 // this PR splits apart along with removing the dead host-resource half).
+// #139: incomingS2SConnections/outgoingS2SConnections/connectedPlayers
+// are real, live per-farm aggregates from Core's addonOpsHealthFarms()
+// -- null (not undefined, not 0) means normalizeOpsHealth() genuinely
+// had no such field in this payload (e.g. an older Core version, or an
+// unavailable source falling through to normalizeOpsHealth(null)'s
+// defaults) -- shown as an honest dash, never fabricated as 0 or
+// silently substituted with a different, unrelated number.
 function renderFarmSummary(snapshot) {
   const totals = (snapshot && snapshot.totals) || {};
-  const s2s = totals.incomingS2s !== undefined ? `${totals.incomingS2s} in / ${totals.outgoingS2s} out` : "—";
+  const hasS2SData = totals.incomingS2SConnections !== null && totals.incomingS2SConnections !== undefined
+    && totals.outgoingS2SConnections !== null && totals.outgoingS2SConnections !== undefined;
+  const s2s = hasS2SData ? `${totals.incomingS2SConnections} in / ${totals.outgoingS2SConnections} out` : "—";
+  const hasConnectedPlayers = totals.connectedPlayers !== null && totals.connectedPlayers !== undefined;
   setText(nocFarmsTotalEl, totals.farms || 0);
   setText(nocFarmsReadyEl, `${totals.readyFarms || 0} / ${totals.aliveFarms || 0}`);
-  setText(nocFarmsPlayersEl, totals.connectedPlayers !== undefined ? totals.connectedPlayers : totals.online || 0);
+  setText(nocFarmsPlayersEl, hasConnectedPlayers ? totals.connectedPlayers : "—");
   setText(nocFarmsS2sEl, s2s);
 }
 
