@@ -11,6 +11,26 @@
     if (!el.hasAttribute(attr)) el.setAttribute(attr, "");
   }
 
+  // #141: the spice keyword scan previously ran unscoped, document-wide --
+  // any element ANYWHERE (Economy's "Spice Tokens" currency, Inventory's
+  // spice_ore_001/spice_portion item IDs, etc.) whose text happened to
+  // contain "spice"/"melange" got tagged data-tagged-spice and forced
+  // into the Spice Melange tab's purple palette (addon.css's unscoped
+  // `[data-tagged-spice] *` rule), with zero relationship to the actual
+  // Spice Melange feature. The Spice Melange tab already has its own,
+  // correct, amber theming (`.tab-content[data-spice]` in addon.css,
+  // scoped to that one tab only) -- this generic row/cell-level spice
+  // tagging mechanism is now scoped to only run inside that same tab's
+  // subtree, matching the tab's own existing scoping convention instead
+  // of introducing a second, narrower one. Faction keyword tagging
+  // (Atreides/Harkonnen row coloring on the Activity/Combat tabs) is
+  // intentionally NOT scoped the same way -- it has no reported
+  // cross-tab bleed and is used precisely because those rows appear on
+  // tabs OTHER than a single faction-specific one.
+  function isInsideSpiceTab(el) {
+    return Boolean(el.closest('.tab-content[data-tab="spice"]'));
+  }
+
   function tagRow(row, text) {
     if (!text || !row) return;
     const lower = text.toLowerCase();
@@ -20,7 +40,7 @@
         return;
       }
     }
-    if (SPICE_KEYWORDS.test(lower)) row.setAttribute("data-tagged-spice", "");
+    if (SPICE_KEYWORDS.test(lower) && isInsideSpiceTab(row)) row.setAttribute("data-tagged-spice", "");
   }
 
   function scanTableRows() {
@@ -34,7 +54,7 @@
       if (cell.hasAttribute("data-tagged-faction") || cell.hasAttribute("data-tagged-spice")) return;
       const lower = (cell.textContent || "").slice(0, 100).toLowerCase();
 
-      if (SPICE_KEYWORDS.test(lower)) {
+      if (SPICE_KEYWORDS.test(lower) && isInsideSpiceTab(cell)) {
         cell.setAttribute("data-tagged-spice", "");
         const parentRow = cell.closest("tr");
         if (parentRow && !parentRow.hasAttribute("data-tagged-spice")) parentRow.setAttribute("data-tagged-spice", "");
