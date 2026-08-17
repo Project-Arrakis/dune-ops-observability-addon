@@ -221,6 +221,7 @@ function activateTab(tabName) {
 const playersBodyEl = document.querySelector("#players-body");
 const providerLabelEl = document.querySelector("#provider-label");
 const emptyStateEl = document.querySelector("#empty-state");
+const opsPartialNoteEl = document.querySelector("#ops-partial-note");
 const metricTotalEl = document.querySelector("#metric-total");
 const metricOnlineEl = document.querySelector("#metric-online");
 const metricOfflineEl = document.querySelector("#metric-offline");
@@ -394,6 +395,16 @@ function unavailableMessage(result) {
   return `Not available — ${reasonText}${source}`;
 }
 
+// #82: message for a partial getOpsHealth() read — some but not all of
+// ops.health.summary.v2/.players/.farms succeeded. Distinct from
+// unavailableMessage() above, which is for a fully-unavailable source;
+// this one names which specific sub-source(s) failed so an operator can
+// tell this apart from a real, complete outage.
+function partialMessage(failedSources) {
+  const list = (failedSources || []).join(", ") || "one or more sub-sources";
+  return `Partial data — ${list} failed to load; figures below reflect only the sources that succeeded.`;
+}
+
 // Shows the shared "not available" note for a panel and clears every
 // metric/table element passed in, so a panel can never show a mix of a
 // numeric card update, e.g. `0`, and unavailable, e.g. dashes elsewhere.
@@ -526,6 +537,20 @@ function topCountLabel(source) {
 function normalizeOpsHealth(result) {
   const available = Boolean(result) && result.status !== "unavailable";
   const raw = available ? result.data : null;
+  // #82: when getOpsHealth() returned a partial result (some but not all
+  // of ops.health.summary.v2/.players/.farms succeeded), `available` is
+  // still true (there IS real data to render) but callers that want to
+  // show an honest "some sources degraded" note need these two fields.
+  // Note that Core's ops.health.summary.v2 already independently
+  // aggregates the same players/farms data ops.health.players/.farms
+  // return directly (see addonOpsHealthSummaryV2 in duneDb.js), so a
+  // single failed sub-call rarely actually loses data below — the
+  // fields below extracted from `summary`/`players`/`farms` fall back to
+  // whichever sibling call succeeded. `partial`/`failedSources` exist so
+  // the UI can still be transparent about a degraded read even when the
+  // numbers themselves came through intact.
+  const partial = Boolean(result) && result.partial === true;
+  const failedSources = partial ? result.failedSources || [] : [];
   const envelope = raw && typeof raw === "object" ? raw : {};
   const summary = envelope.summary && typeof envelope.summary === "object" ? envelope.summary : envelope;
   const players = envelope.players || summary.players || {};
@@ -563,6 +588,8 @@ function normalizeOpsHealth(result) {
   return {
     available,
     unavailableReason: available ? null : (result && result.reason) || "bridge_error",
+    partial,
+    failedSources,
     raw,
     summary,
     players,
@@ -703,6 +730,7 @@ function renderOpsAggregate(snapshot, refreshedAt) {
     setText(metricOnlineEl, null);
     setText(metricOfflineEl, null);
     setText(metricFarmsEl, null);
+    if (opsPartialNoteEl) opsPartialNoteEl.hidden = true;
     if (emptyStateEl) {
       emptyStateEl.hidden = false;
       emptyStateEl.textContent = unavailableMessage({ reason: snapshot.unavailableReason, source: "ops.health.*" });
@@ -714,6 +742,11 @@ function renderOpsAggregate(snapshot, refreshedAt) {
   setText(metricOnlineEl, totals.online);
   setText(metricOfflineEl, totals.offline);
   setText(metricFarmsEl, totals.farms);
+
+  if (opsPartialNoteEl) {
+    opsPartialNoteEl.hidden = !snapshot.partial;
+    opsPartialNoteEl.textContent = snapshot.partial ? partialMessage(snapshot.failedSources) : "";
+  }
 
   if (emptyStateEl) {
     emptyStateEl.hidden = snapshot.hasRows;
@@ -754,6 +787,8 @@ async function refreshOpsHealth() {
 
     if (!snapshot.available) {
       writeStatus("Unable to read OPS health data from the configured provider.", "status-warn");
+    } else if (snapshot.partial) {
+      writeStatus(`Connected to Dune Docker Console, but ${snapshot.failedSources.join(", ")} failed to load. Showing partial live data.`, "status-warn");
     } else if (provider.name === "bridge") {
       writeStatus("Connected to Dune Docker Console. Showing live Release 0.3 OPS health bridge data.", "status-ok");
     } else {
@@ -769,6 +804,8 @@ async function refreshOpsHealth() {
       previousTotals: previousSnapshot,
       opsHealth,
       kpis: summary.kpis,
+      partial: snapshot.partial,
+      failedSources: snapshot.failedSources,
       resultShape: {
         hasSummaryPlayers: Boolean(snapshot.summary && snapshot.summary.players),
         hasSummaryFarms: Boolean(snapshot.summary && snapshot.summary.farms),
