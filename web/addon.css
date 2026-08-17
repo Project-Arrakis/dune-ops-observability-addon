@@ -682,6 +682,23 @@ pre { overflow: auto; white-space: pre-wrap; font-size: var(--font-size-xs); }
   border-bottom-color: #3b82f6;
 }
 
+/* #137: secondary nav -- currently just the Diag link, deliberately
+   smaller/quieter than the primary tab bar it was moved out of. */
+.secondary-nav {
+  margin: 4px 0 0;
+  text-align: right;
+}
+.secondary-tab-link {
+  color: var(--text-tertiary);
+  font-size: var(--font-size-xs);
+  text-decoration: none;
+  border-bottom: 1px dotted var(--text-tertiary);
+}
+.secondary-tab-link:hover,
+.secondary-tab-link.active {
+  color: var(--text-secondary);
+}
+
 .tab-content {
   display: none;
   gap: 14px;

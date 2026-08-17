@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **AAA/NOC Infra/Audit tabs hidden from primary nav; Diag moved to a
+  secondary link (#137).** These 3 tabs are permanently non-functional
+  pending a Core R3 release with no announced ETA — hiding them cuts
+  perceived nav complexity without removing anything (their
+  `tab-content` panels remain in the DOM, unreachable, for whenever
+  Core R3 ships). Diag (an explicit dev-debugging tool — "may contain
+  raw bridge data, do not share screenshots") moved out of the primary
+  tab bar into a small secondary link near the status banner, using the
+  same underlying `activateTab()` logic as every primary tab button.
+  This closes 3 of 4 concrete recommendations from issue #128 that were
+  never actually shipped despite that issue showing closed — see
+  `compliance/eight-hats-findings-register-2026-08-17.md`, Finding G-1,
+  for the full audit trail. The 4th recommendation (consolidating
+  `.metric-card`/`.kpi-card`/`.health-card` into one CSS class) is
+  larger-scope work, split out to #146.
+
 ### Added
 - **NOC Overview: per-container resource grid (#133, PR 1 of 3).** New
   "Containers" panel replaces the permanently-`"—"` "Server Resources"
