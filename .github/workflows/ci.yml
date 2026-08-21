@@ -69,34 +69,20 @@ jobs:
       - run: node scripts/check-sri-integrity.js
       - run: npm test
 
-  security:
-    name: Security Scanning
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          fetch-depth: 0
-      - name: Run gitleaks
-        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Run semgrep
-        run: |
-          python3 -m pip install semgrep==1.170.0
-          semgrep scan --config p/default --config p/secrets --error
-      - name: Run trivy
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          scanners: 'vuln,misconfig,secret'
-          severity: 'CRITICAL,HIGH'
-          exit-code: '1'
+  # A "security" job (gitleaks + semgrep + trivy) used to live here.
+  # Removed -- it duplicated secret-scan.yml/sast.yml/filesystem-scan.yml
+  # exactly (same tools, same config), which already run those same three
+  # scanners as their own required branch-protection checks ("gitleaks",
+  # "semgrep", "trivy"). Five separate workflow files independently
+  # running the same scanners was wasted CI time and a real drift risk
+  # (one copy's config silently diverging from another's) -- found during
+  # an org-wide CI audit. This job was never itself a required check, so
+  # removing it doesn't change what's enforced.
 
   ci-gate:
     name: CI Gate
     if: ${{ always() }}
-    needs: [shellcheck, validate-json, npm-audit, unit-tests, security]
+    needs: [shellcheck, validate-json, npm-audit, unit-tests]
     runs-on: ubuntu-latest
     steps:
       - name: Require every check to pass
@@ -105,11 +91,10 @@ jobs:
           JSON: ${{ needs.validate-json.result }}
           NPM_AUDIT: ${{ needs.npm-audit.result }}
           UNIT_TESTS: ${{ needs.unit-tests.result }}
-          SECURITY: ${{ needs.security.result }}
         run: |
           set -euo pipefail
           failed=0
-          for result in "$SHELLCHECK" "$JSON" "$NPM_AUDIT" "$UNIT_TESTS" "$SECURITY"; do
+          for result in "$SHELLCHECK" "$JSON" "$NPM_AUDIT" "$UNIT_TESTS"; do
             if [ "$result" != "success" ]; then
               failed=1
             fi
