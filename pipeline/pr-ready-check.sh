@@ -106,7 +106,7 @@ if command -v ggshield >/dev/null 2>&1; then
     fail "ggshield found issues"
   fi
 else
-  pass "ggshield not installed (skipped)"
+  fail "ggshield not installed"
 fi
 
 # 7. Secret keyword grep
