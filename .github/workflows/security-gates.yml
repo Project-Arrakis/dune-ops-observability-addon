@@ -34,36 +34,10 @@ jobs:
         with:
           fail-on-severity: moderate
 
-  semgrep-sast:
-    name: Semgrep SAST
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-      - name: Run semgrep
-        run: |
-          python3 -m pip install semgrep==1.170.0
-          semgrep scan --config p/default --config p/secrets --error
-
-  secret-scan:
-    name: Secret Scan
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  trivy-filesystem:
-    name: Trivy Filesystem
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-      - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          scan-type: fs
-          scan-ref: .
-          scanners: 'vuln,misconfig,secret'
-          severity: 'CRITICAL,HIGH'
-          exit-code: '1'
+  # semgrep-sast/secret-scan/trivy-filesystem jobs used to live here.
+  # Removed -- they duplicated sast.yml/secret-scan.yml/filesystem-scan.yml
+  # exactly (same tools, same config), which already run as required
+  # branch-protection checks ("semgrep", "gitleaks", "trivy"). None of
+  # these three were themselves required checks, so removing them doesn't
+  # change what's enforced. See ci.yml's matching removal for the same
+  # reasoning.
