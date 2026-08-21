@@ -77,7 +77,7 @@ if command -v shellcheck >/dev/null 2>&1; then
         pass "no shell script changes"
     fi
 else
-    echo "  SKIP: shellcheck not installed"
+    fail "shellcheck not installed"
 fi
 
 # 6. Gitleaks
@@ -100,7 +100,7 @@ if command -v gitleaks >/dev/null 2>&1; then
     fi
     rm -rf "$PR_FILES_DIR"
 else
-    echo "  SKIP: gitleaks not installed"
+    fail "gitleaks not installed"
 fi
 
 # 7. Secret keyword review
@@ -141,7 +141,7 @@ if command -v trivy >/dev/null 2>&1; then
     fi
     rm -rf "$PR_FILES_DIR"
 else
-    echo "  SKIP: trivy not installed"
+    fail "trivy not installed"
 fi
 
 # 9. Security (ggshield)
