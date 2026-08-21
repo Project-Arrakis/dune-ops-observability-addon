@@ -9,14 +9,11 @@ on:
 
 permissions:
   contents: read
-  security-events: write
 
 jobs:
   semgrep:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-      - name: Run semgrep
-        run: |
-          python3 -m pip install semgrep==1.170.0
-          semgrep scan --config p/default --config p/secrets --error
+    uses: Project-Arrakis/.github/.github/workflows/reusable-security-scan.yml@feat/reusable-security-scan-workflow
+    with:
+      run-gitleaks: false
+      run-trivy: false
+    secrets: inherit
