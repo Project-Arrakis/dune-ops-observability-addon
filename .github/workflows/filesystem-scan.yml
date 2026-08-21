@@ -16,4 +16,5 @@ jobs:
     with:
       run-gitleaks: false
       run-semgrep: false
-    secrets: inherit
+    secrets:
+      SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
