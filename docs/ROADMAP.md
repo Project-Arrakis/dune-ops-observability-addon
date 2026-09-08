@@ -260,9 +260,9 @@ Before implementing any game-facing metric in v0.4–v0.6, a PostgreSQL event in
 - **[COMMUNITY-INDEX-PR.md](COMMUNITY-INDEX-PR.md)** — Upstream community catalog PR procedure
 
 ### Implementation Evidence
-- **[R1-METRICS-STACK-IMPLEMENTATION-NOTES.md](../../../dune-awakening-selfhost-docker/docs/R1-METRICS-STACK-IMPLEMENTATION-NOTES.md)** (Core repo) — R1 operational design, security posture, validation evidence
-- **[PR-EVIDENCE-ADDON-METRICS-SUPPORT.md](../../../dune-awakening-selfhost-docker/docs/PR-EVIDENCE-ADDON-METRICS-SUPPORT.md)** (Core repo) — Metrics stack PR scope, validation trail, E2E results
-- **[E2E-METRICS-TESTING.md](../../../dune-awakening-selfhost-docker/docs/E2E-METRICS-TESTING.md)** (Core repo) — E2E testing procedure for the metrics stack
+- **[R1-METRICS-STACK-IMPLEMENTATION-NOTES.md](https://github.com/Project-Arrakis/dune-awakening-selfhost-docker/blob/main/docs/archive/R1-METRICS-STACK-IMPLEMENTATION-NOTES.md)** (Core repo) — R1 operational design, security posture, validation evidence
+- **[PR-EVIDENCE-ADDON-METRICS-SUPPORT.md](https://github.com/Project-Arrakis/dune-awakening-selfhost-docker/blob/main/docs/archive/PR-EVIDENCE-ADDON-METRICS-SUPPORT.md)** (Core repo) — Metrics stack PR scope, validation trail, E2E results
+- **[E2E-METRICS-TESTING.md](https://github.com/Project-Arrakis/dune-awakening-selfhost-docker/blob/main/docs/runtime/E2E-METRICS-TESTING.md)** (Core repo) — E2E testing procedure for the metrics stack
 
 ### Diagrams
 - **[architecture.png](diagrams/architecture.png)** — Full system architecture (Core + Addon + External)
