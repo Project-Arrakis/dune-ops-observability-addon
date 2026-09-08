@@ -171,7 +171,7 @@ Managed through the existing `metrics-stack.sh` script. Grafana and Alertmanager
 
 ## References
 
-- [ROADMAP.md](ROADMAP.md) — Core R2 release definition
-- [RFC.md](RFC.md) — RFC-DOO-0001 Section 4.1
-- [R1-METRICS-STACK-IMPLEMENTATION-NOTES.md](../../../dune-awakening-selfhost-docker/docs/R1-METRICS-STACK-IMPLEMENTATION-NOTES.md) — R1 operational design
+- [ROADMAP.md](../ROADMAP.md) — Core R2 release definition
+- [RFC.md](../RFC.md) — RFC-DOO-0001 Section 4.1
+- [R1-METRICS-STACK-IMPLEMENTATION-NOTES.md](https://github.com/Project-Arrakis/dune-awakening-selfhost-docker/blob/main/docs/archive/R1-METRICS-STACK-IMPLEMENTATION-NOTES.md) — R1 operational design (Core repo)
 - `runtime/metrics/rules/dune-stack.yml` — Empty rule group (populated by this release)
