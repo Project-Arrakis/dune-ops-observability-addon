@@ -49,6 +49,9 @@ else
 fi
 
 echo -n "[3/5] trivy ... "
+if ! command -v trivy >/dev/null 2>&1; then
+  fail "trivy is not installed"
+fi
 output="$(trivy fs --scanners secret --severity HIGH,CRITICAL --skip-files '**/certs/*' --skip-dirs node_modules --skip-dirs .git . 2>&1)" || true
 if echo "$output" | grep -qE 'CRITICAL|HIGH'; then
   echo "$output" | grep -E '(CRITICAL|HIGH|Total:)' | head -10
